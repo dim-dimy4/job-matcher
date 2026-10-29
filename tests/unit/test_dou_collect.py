@@ -4,13 +4,14 @@ import httpx
 import pytest
 
 from job_matcher.collectors import dou
+from job_matcher.collectors.http import USER_AGENT, make_client
 
 REMOTE_URL, RELOCATION_URL = dou.FEED_URLS
 
 
 @pytest.fixture
 def client():
-    with dou.make_client() as c:
+    with make_client() as c:
         yield c
 
 
@@ -55,7 +56,7 @@ def test_requests_carry_contact_user_agent(client, feeds, no_sleep):
 
     assert route.call_count == len(dou.FEED_URLS)
     for call in route.calls:
-        assert call.request.headers["User-Agent"] == dou.USER_AGENT
+        assert call.request.headers["User-Agent"] == USER_AGENT
 
 
 def test_waits_between_feeds(client, feeds, no_sleep):

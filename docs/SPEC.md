@@ -1,6 +1,6 @@
 # Job Matcher — MVP Specification
 
-Version 1.0 · 2026-10-29 · Author: Dmytro Kachuk
+Version 1.1 · 2026-10-29 · Author: Dmytro Kachuk
 Purpose: starting point for a Claude Code session. Lives in the repository as `docs/SPEC.md`.
 
 ## 1. Goal
@@ -26,7 +26,7 @@ Stored in `config/profile.yaml`, not in code.
 ## 3. MVP scope
 
 **In scope:**
-- Sources: JustJoin.it and DOU (2 sources)
+- Sources: Himalayas and DOU (2 sources); see §4.1 for why not JustJoin.it
 - Collection every 3 hours via GitHub Actions (cron)
 - Normalization into a single vacancy model + deduplication by URL
 - Rule-based matching (no LLM), score 0–100
@@ -35,7 +35,7 @@ Stored in `config/profile.yaml`, not in code.
 - Tests and CI
 
 **Out of scope (later):**
-- No Fluff Jobs, Djinni, remote job boards
+- Djinni, more remote job boards
 - LLM-based resume fit scoring (Claude API)
 - Status buttons in Telegram
 - Web dashboard
@@ -54,6 +54,16 @@ GitHub Actions (cron, every 3 h)
 ```
 
 Collection rules: infrequent requests, a user-agent with contact info, respect robots.txt and the platforms' terms, no bypassing of protections.
+
+### 4.1 Sources (decided in stages 2–3)
+
+| Source | Access | Status |
+|---|---|---|
+| DOU.ua | Official RSS feeds, QA category (`remote`, `relocation`) | Used |
+| Himalayas | Official public JSON API (`/jobs/api/search`, `country=PL`); API terms allow personal use, Apply must use `applicationLink` | Used |
+| JustJoin.it | `/api/` disallowed in robots.txt; user terms §11.3 forbid automated data extraction without written consent | Not used; only job alert emails, handled manually |
+| No Fluff Jobs | `/api/` and offer pages disallowed in robots.txt, CAPTCHA on the site | Not used |
+| theprotocol.it, pracuj.pl | Behind bot protection (Cloudflare challenge) | Not used |
 
 ## 5. Data model
 
@@ -98,7 +108,7 @@ Personal bot, one message per vacancy: title, company, location, salary range, s
 ```
 job-matcher/
   src/job_matcher/
-    collectors/ (justjoin.py, dou.py)
+    collectors/ (himalayas.py, dou.py)
     models.py  normalize.py  matcher.py  storage.py
     notifier/telegram.py  tracker/sheets.py  main.py
   config/profile.yaml
@@ -115,18 +125,18 @@ job-matcher/
 
 1. Repository skeleton, model, CI, first test
 2. DOU collector + fixture-based tests
-3. JustJoin.it collector + tests
+3. Himalayas collector + tests (replaces JustJoin.it, see §4.1)
 4. Rule-based matcher + table-driven tests
 5. Google Sheet + Telegram
 6. GitHub Actions schedule, README with architecture
-7. (v2) No Fluff Jobs, LLM scoring, status buttons
+7. (v2) More sources, LLM scoring, status buttons
 
 Pace: 4–6 hours per week. The manual job search does not wait for the tool.
 
 ## 13. Open questions
 
 - Make the repository public right away or after stage 4?
-- Exact ways to get data from JustJoin.it and DOU — investigate in stages 2–3 (API/RSS/HTML)
+- ~~Exact ways to get data from the sources~~ — decided, see §4.1
 - Do the platforms offer a filter by vacancy language — check at the same time
 - Minimum rate for the filter
 

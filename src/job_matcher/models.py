@@ -18,7 +18,7 @@ from pydantic import (
 
 
 class Source(StrEnum):
-    JUSTJOIN = "justjoin"
+    HIMALAYAS = "himalayas"
     DOU = "dou"
 
 

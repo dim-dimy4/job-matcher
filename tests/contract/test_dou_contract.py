@@ -9,6 +9,7 @@ import pytest
 from defusedxml.ElementTree import fromstring
 
 from job_matcher.collectors import dou
+from job_matcher.collectors.http import make_client
 
 pytestmark = pytest.mark.contract
 
@@ -17,7 +18,7 @@ REQUIRED_TAGS = ("title", "link", "description", "pubDate")
 
 @pytest.fixture(scope="module")
 def client():
-    with dou.make_client() as c:
+    with make_client() as c:
         yield c
 
 

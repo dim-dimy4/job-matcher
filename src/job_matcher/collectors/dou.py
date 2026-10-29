@@ -18,6 +18,7 @@ import httpx
 from defusedxml import DefusedXmlException
 from defusedxml.ElementTree import fromstring
 
+from job_matcher.collectors.http import make_client
 from job_matcher.models import RemoteType, Source, Vacancy
 from job_matcher.normalize import (
     clean_url,
@@ -34,8 +35,6 @@ FEED_URLS = (
     "https://jobs.dou.ua/vacancies/feeds/?category=QA&remote",
     "https://jobs.dou.ua/vacancies/feeds/?category=QA&relocation",
 )
-USER_AGENT = "job-matcher/0.1 (+https://github.com/dim-dimy4/job-matcher)"
-TIMEOUT_SECONDS = 20.0
 DELAY_BETWEEN_FEEDS_SECONDS = 2.0
 
 _REMOTE_MARKER = "віддалено"
@@ -133,12 +132,6 @@ def parse_feed(xml: bytes | str) -> list[Vacancy]:
         except ValueError as exc:  # pydantic's ValidationError is a ValueError too
             logger.warning("DOU: skipped item %r: %s", item.findtext("link"), exc)
     return vacancies
-
-
-def make_client() -> httpx.Client:
-    return httpx.Client(
-        headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT_SECONDS, follow_redirects=True
-    )
 
 
 def fetch_feed(client: httpx.Client, url: str) -> bytes:
