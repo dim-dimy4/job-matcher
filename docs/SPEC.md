@@ -72,13 +72,14 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 - `location`, `remote` (yes/no/hybrid), `seniority`
 - `salary_min`, `salary_max`, `currency`, `contract_type` (B2B/UoP)
 - `language_of_post` (en/pl/uk), `requires_polish` (bool)
-- `skills` (list), `published_at`, `collected_at`
+- `description` (plain text of the post, used for keyword matching; not stored in the sheet)
+- `skills` (list: plus keywords found by the matcher), `published_at`, `collected_at`
 - `score` (0–100), `match_reasons` (list of strings)
 
 ## 6. Matching logic (v1, rules)
 
-- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list; "Junior" in the title
-- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and ≥ minimum (+10)
+- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
+- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the monthly minimum for its currency (+10)
 - `requires_polish`: the vacancy text language is pl, or the requirements mention "Polish C1 / fluent Polish / język polski"
 - Every score comes with a list of reasons — for transparency and for tests
 

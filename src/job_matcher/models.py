@@ -71,6 +71,8 @@ class Vacancy(BaseModel):
 
     language_of_post: Language | None = None
     requires_polish: bool = False
+    # Plain text of the post; the matcher looks for keywords here. Not stored in the sheet.
+    description: str = ""
 
     skills: list[str] = Field(default_factory=list)
     published_at: AwareDatetime | None = None

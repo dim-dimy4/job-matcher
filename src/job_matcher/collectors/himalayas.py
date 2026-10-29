@@ -87,6 +87,7 @@ def parse_job(job: dict[str, Any]) -> Vacancy:
         contract_type=ContractType.B2B if job.get("employmentType") == "Contractor" else None,
         language_of_post=language,
         requires_polish=requires_polish(description, language),
+        description=description,
         published_at=datetime.fromtimestamp(job["pubDate"], tz=UTC),
     )
 

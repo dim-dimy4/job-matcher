@@ -1,0 +1,52 @@
+# Candidate profile: the matcher's input (SPEC §2). Data only; scoring rules live in matcher.py.
+# Keywords are matched case-insensitively as whole words ("API" also matches "APIs").
+
+# A title must contain one of these, otherwise the vacancy is not a QA role (score 0).
+role_keywords:
+  - QA
+  - AQA
+  - SDET
+  - engineer in test
+  - quality assurance
+  - quality engineer
+  - test automation
+  - automation tester
+  - test engineer
+  - tester
+
+# On-site / hybrid is fine only in these cities; remote is fine anywhere the post allows.
+cities:
+  - Wrocław
+  - Wroclaw
+  - Вроцлав
+
+# +5 each, at most +30.
+plus_keywords:
+  - Playwright
+  - Python
+  - Pytest
+  - API
+  - Postman
+  - LLM
+  - AI
+  - GenAI
+  - Stripe
+  - SaaS
+  - startup
+
+# Any of these anywhere in the post: score 0.
+minus_keywords:
+  - gambling
+  - casino
+  - iGaming
+  - betting
+
+# Monthly minimum per currency (B2B, gross). A salary range reaching it earns +10.
+# TODO: placeholder values, set your own.
+min_monthly_salary:
+  PLN: 20000
+  USD: 5000
+  EUR: 4600
+
+# Vacancies scoring at least this go to Telegram.
+notify_threshold: 70

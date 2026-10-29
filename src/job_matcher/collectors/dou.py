@@ -118,6 +118,7 @@ def parse_item(item: Element) -> Vacancy:
         currency="USD" if has_salary else None,
         language_of_post=language,
         requires_polish=requires_polish(description, language),
+        description=description,
         published_at=parsedate_to_datetime(_text(item, "pubDate")),
     )
 
