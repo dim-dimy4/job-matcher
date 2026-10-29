@@ -33,10 +33,10 @@ jobs:
       - name: Format check
         run: ruff format --check .
 
-      # Contract tests hit real sites — they run in a separate scheduled workflow.
+      # Contract tests (real network) are excluded by default in pyproject.toml.
       - name: Tests
         run: >
-          pytest -m "not contract"
+          pytest
           --cov --cov-report=term-missing --cov-report=xml
           --junitxml=junit.xml
 

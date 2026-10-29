@@ -1,9 +1,12 @@
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 from job_matcher.models import Vacancy
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 VacancyFactory = Callable[..., Vacancy]
 
@@ -23,3 +26,9 @@ def make_vacancy() -> VacancyFactory:
         return Vacancy(**data)
 
     return _make
+
+
+@pytest.fixture
+def read_fixture() -> Callable[[str], bytes]:
+    """Raw bytes of a saved source response, e.g. read_fixture("dou/qa_remote.xml")."""
+    return lambda name: (FIXTURES_DIR / name).read_bytes()
