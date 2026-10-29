@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "job-matcher"
+version = "0.1.0"
+description = "Collects QA vacancies, scores them against a profile, notifies via Telegram and tracks in Google Sheets."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/job_matcher"]
+
+# ---------- pytest ----------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--import-mode=importlib",
+]
+markers = [
+    "contract: live checks against real sources (network, run on schedule only)",
+]
+filterwarnings = ["error"]
+
+# ---------- coverage ----------
+[tool.coverage.run]
+source = ["job_matcher"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+# ---------- ruff ----------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # pyflakes
+    "I",       # isort
+    "UP",      # pyupgrade
+    "B",       # bugbear
+    "SIM",     # simplify
+    "PT",      # pytest style
+    "RUF",     # ruff-specific
+]
