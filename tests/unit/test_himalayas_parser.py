@@ -43,7 +43,7 @@ def _find(vacancies, company):
 def test_fixture_page_parses_every_job(load_page, caplog, name):
     vacancies = parse_page(load_page(name))
 
-    assert len(vacancies) == 20
+    assert len(vacancies) == 6
     assert not caplog.records, "no job should be skipped"
     for v in vacancies:
         assert v.source is Source.HIMALAYAS

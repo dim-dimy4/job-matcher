@@ -37,7 +37,7 @@ def _get(scored, company, title):
     ("company", "title"),
     [
         ("Codest", "Senior QA Automation Engineer"),
-        ("NVIDIA", "Senior QA Automation Engineer, ASIC Simulation"),
+        ("Glorium", "Middle/Senior AQA"),
         ("FinteqHub", "QA Tech Lead"),
     ],
 )

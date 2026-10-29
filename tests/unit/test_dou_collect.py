@@ -44,9 +44,9 @@ def feeds(respx_mock, read_fixture):
 def test_collect_merges_feeds_and_deduplicates(client, feeds, no_sleep):
     vacancies = dou.collect(client)
 
-    # 25 + 25 items, 7 vacancies appear in both feeds.
-    assert len(vacancies) == 43
-    assert len({v.id for v in vacancies}) == 43
+    # 6 + 6 items, 3 vacancies appear in both feeds.
+    assert len(vacancies) == 9
+    assert len({v.id for v in vacancies}) == 9
 
 
 def test_requests_carry_contact_user_agent(client, feeds, no_sleep):
@@ -81,7 +81,7 @@ def test_one_failing_feed_does_not_lose_the_other(client, feeds, no_sleep, caplo
 
     vacancies = dou.collect(client)
 
-    assert len(vacancies) == 25  # everything from the relocation feed
+    assert len(vacancies) == 6  # everything from the relocation feed
     assert f"feed {REMOTE_URL} failed" in caplog.text
 
 

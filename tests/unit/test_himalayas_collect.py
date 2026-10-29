@@ -44,15 +44,15 @@ def pages(respx_mock, read_fixture):
 def test_collect_merges_pages(client, pages, no_sleep):
     vacancies = himalayas.collect(client)
 
-    assert len(vacancies) == 40
-    assert len({v.id for v in vacancies}) == 40
+    assert len(vacancies) == 12
+    assert len({v.id for v in vacancies}) == 12
 
 
 def test_same_job_on_two_pages_is_kept_once(client, pages, no_sleep, read_fixture):
     responses, _ = pages
     responses[2] = httpx.Response(200, content=read_fixture("himalayas/qa_pl_page1.json"))
 
-    assert len(himalayas.collect(client)) == 20
+    assert len(himalayas.collect(client)) == 6
 
 
 def test_requests_carry_search_params_and_user_agent(client, pages, no_sleep):
@@ -98,7 +98,7 @@ def test_failing_page_keeps_what_was_collected(client, pages, no_sleep, caplog, 
 
     vacancies = himalayas.collect(client)
 
-    assert len(vacancies) == 20  # everything from page 1
+    assert len(vacancies) == 6  # everything from page 1
     assert "page 2 failed" in caplog.text
 
 

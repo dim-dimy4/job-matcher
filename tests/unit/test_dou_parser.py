@@ -87,7 +87,7 @@ def test_parse_title_rejects_unknown_format(title):
 def test_fixture_feed_parses_every_item(read_fixture, caplog, name):
     vacancies = parse_feed(read_fixture(name))
 
-    assert len(vacancies) == 25
+    assert len(vacancies) == 6
     assert not caplog.records, "no item should be skipped"
     for v in vacancies:
         assert v.source is Source.DOU
