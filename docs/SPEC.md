@@ -1,99 +1,99 @@
-# Job Matcher — ТЗ первой версии (MVP)
+# Job Matcher — MVP Specification
 
-Версия 1.0 · 29.10.2026 · Автор: Дмитрий Качук
-Назначение документа: стартовая точка для сессии в Claude Code. Скопировать в репозиторий как `docs/SPEC.md`.
+Version 1.0 · 2026-10-29 · Author: Dmytro Kachuk
+Purpose: starting point for a Claude Code session. Lives in the repository as `docs/SPEC.md`.
 
-## 1. Цель
+## 1. Goal
 
-Тулза, которая регулярно собирает QA-вакансии с выбранных площадок, отбирает подходящие под мой профиль, присылает их в Telegram и ведёт учёт в Google-таблице.
+A tool that regularly collects QA vacancies from selected job boards, picks the ones that fit my profile, sends them to Telegram and keeps a log in a Google Sheet.
 
-Две цели одновременно:
-1. **Практическая:** меньше ручного просмотра площадок, ни одной пропущенной релевантной вакансии.
-2. **Портфолио:** публичный репозиторий, который подтверждает навыки автоматизации (Python, Pytest, Playwright, CI). Качество тестов и README так же важны, как сама функциональность.
+Two goals at once:
+1. **Practical:** less manual browsing of job boards, no relevant vacancy missed.
+2. **Portfolio:** a public repository that demonstrates automation skills (Python, Pytest, Playwright, CI). Test quality and the README matter as much as the functionality itself.
 
-## 2. Профиль кандидата (вход для матчинга)
+## 2. Candidate profile (matching input)
 
-Хранить в `config/profile.yaml`, не в коде.
+Stored in `config/profile.yaml`, not in code.
 
-- Роли: Senior QA Engineer, QA Lead, QA Automation Engineer, AI/LLM QA, SDET
-- Грейд: Senior, Lead (Middle+ допускается с низким приоритетом)
-- Локации: Wrocław (hybrid/on-site), Remote (Poland, EU, UK)
-- Языки: English C1; Polish B1 — вакансии с обязательным Polish C1/fluent отсеивать
-- Плюс-ключевые слова: Playwright, Python, Pytest, API, Postman, LLM, AI, GenAI, Stripe, SaaS, startup
-- Минус-ключевые слова: gambling, casino, iGaming, betting
-- Минимальная ставка: настраиваемое поле (B2B, в PLN или USD/месяц)
+- Roles: Senior QA Engineer, QA Lead, QA Automation Engineer, AI/LLM QA, SDET
+- Seniority: Senior, Lead (Middle+ allowed with low priority)
+- Locations: Wrocław (hybrid/on-site), Remote (Poland, EU, UK)
+- Languages: English C1; Polish B1 — filter out vacancies that require Polish C1/fluent
+- Plus keywords: Playwright, Python, Pytest, API, Postman, LLM, AI, GenAI, Stripe, SaaS, startup
+- Minus keywords: gambling, casino, iGaming, betting
+- Minimum rate: configurable field (B2B, in PLN or USD/month)
 
-## 3. Объём MVP
+## 3. MVP scope
 
-**Входит:**
-- Источники: JustJoin.it и DOU (2 штуки)
-- Сбор каждые 3 часа через GitHub Actions (cron)
-- Нормализация в единую модель вакансии + дедупликация по URL
-- Матчинг по правилам (без LLM), оценка 0–100
-- Отправка вакансий с оценкой ≥ 70 в Telegram
-- Запись подходящих вакансий в Google-таблицу «Job Tracker»
-- Тесты и CI
+**In scope:**
+- Sources: JustJoin.it and DOU (2 sources)
+- Collection every 3 hours via GitHub Actions (cron)
+- Normalization into a single vacancy model + deduplication by URL
+- Rule-based matching (no LLM), score 0–100
+- Vacancies with score ≥ 70 sent to Telegram
+- Matching vacancies appended to the "Job Tracker" Google Sheet
+- Tests and CI
 
-**Не входит (позже):**
-- No Fluff Jobs, Djinni, remote-доски
-- LLM-оценка соответствия резюме (Claude API)
-- Кнопки статусов в Telegram
-- Веб-дашборд
-- LinkedIn — не парсить (нарушает правила площадки); только почтовые оповещения о вакансиях, вручную
+**Out of scope (later):**
+- No Fluff Jobs, Djinni, remote job boards
+- LLM-based resume fit scoring (Claude API)
+- Status buttons in Telegram
+- Web dashboard
+- LinkedIn — do not scrape (violates the platform's terms); only job alert emails, handled manually
 
-## 4. Архитектура
+## 4. Architecture
 
 ```
-GitHub Actions (cron, каждые 3 ч)
-  → collectors/ (по одному модулю на источник)
+GitHub Actions (cron, every 3 h)
+  → collectors/ (one module per source)
   → normalize → Vacancy
-  → storage (SQLite: seen URLs)  — дедупликация
-  → matcher (правила из profile.yaml) → score + reasons
-  → notifier/telegram  (score ≥ порога)
+  → storage (SQLite: seen URLs)  — deduplication
+  → matcher (rules from profile.yaml) → score + reasons
+  → notifier/telegram  (score ≥ threshold)
   → tracker/google_sheets (append row)
 ```
 
-Правила сбора: редкие запросы, user-agent с контактом, уважать robots.txt и условия площадок, без обхода защит.
+Collection rules: infrequent requests, a user-agent with contact info, respect robots.txt and the platforms' terms, no bypassing of protections.
 
-## 5. Модель данных
+## 5. Data model
 
 `Vacancy`:
-- `id` (hash URL), `source`, `url`, `title`, `company`
+- `id` (URL hash), `source`, `url`, `title`, `company`
 - `location`, `remote` (yes/no/hybrid), `seniority`
 - `salary_min`, `salary_max`, `currency`, `contract_type` (B2B/UoP)
 - `language_of_post` (en/pl/uk), `requires_polish` (bool)
 - `skills` (list), `published_at`, `collected_at`
-- `score` (0–100), `match_reasons` (list строк)
+- `score` (0–100), `match_reasons` (list of strings)
 
-## 6. Логика матчинга (v1, правила)
+## 6. Matching logic (v1, rules)
 
-- Жёсткие фильтры (сразу 0): минус-слова; `requires_polish = true` при уровне выше B1; локация вне списка; Junior в названии
-- Баллы: совпадение роли (+30), грейд Senior/Lead (+20), плюс-слова (+5 за каждое, максимум +30), remote/Wrocław (+10), вилка указана и ≥ минимума (+10)
-- `requires_polish`: язык текста вакансии = pl, или в требованиях встречается «Polish C1 / fluent Polish / język polski»
-- Каждая оценка сопровождается списком причин — для прозрачности и тестов
+- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list; "Junior" in the title
+- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and ≥ minimum (+10)
+- `requires_polish`: the vacancy text language is pl, or the requirements mention "Polish C1 / fluent Polish / język polski"
+- Every score comes with a list of reasons — for transparency and for tests
 
-## 7. Google-таблица «Job Tracker»
+## 7. "Job Tracker" Google Sheet
 
-Колонки:
-Дата | Источник | Компания | Вакансия | Ссылка | Локация/формат | Вилка | Оценка | Причины | Статус | Версия резюме | Дата отклика | Дата ответа | HR | Test task | Tech | Причина отказа | Заметки
+Columns:
+Date | Source | Company | Vacancy | Link | Location/format | Salary range | Score | Reasons | Status | Resume version | Applied on | Response on | HR | Test task | Tech | Rejection reason | Notes
 
-Статусы (выпадающий список): Новая · Откликнулся · HR · Тестовое · Техническое · Оффер · Отказ · Пропустил
+Statuses (dropdown): New · Applied · HR · Test task · Technical · Offer · Rejected · Skipped
 
-Бот только добавляет строки; статусы веду я вручную.
+The bot only appends rows; I maintain statuses manually.
 
 ## 8. Telegram
 
-Личный бот, сообщение на вакансию: название, компания, локация, вилка, оценка, 2–3 причины, ссылка. Без спама: не больше N сообщений за запуск, остальное — в таблице.
+Personal bot, one message per vacancy: title, company, location, salary range, score, 2–3 reasons, link. No spam: at most N messages per run, the rest goes only to the sheet.
 
-## 9. Тестирование (часть портфолио)
+## 9. Testing (part of the portfolio)
 
-- Unit: нормализация, матчинг (табличные кейсы через `pytest.mark.parametrize`), определение языка и `requires_polish`
-- Парсеры: тесты на сохранённых фикстурах (HTML/JSON ответов), без сети
-- Контрактные тесты: проверка, что ответ источника всё ещё содержит нужные поля (запуск по расписанию, отдельно)
-- Интеграционные: Telegram и Sheets через моки
-- CI: ruff + pytest + coverage на каждый push; отчёт о покрытии в README
+- Unit: normalization, matching (table-driven cases via `pytest.mark.parametrize`), language detection and `requires_polish`
+- Parsers: tests on saved fixtures (HTML/JSON responses), no network
+- Contract tests: check that the source response still contains the required fields (run on a schedule, separately)
+- Integration: Telegram and Sheets via mocks
+- CI: ruff + pytest + coverage on every push; coverage report in the README
 
-## 10. Структура репозитория
+## 10. Repository layout
 
 ```
 job-matcher/
@@ -107,29 +107,29 @@ job-matcher/
   docs/SPEC.md  README.md
 ```
 
-## 11. Секреты
+## 11. Secrets
 
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` — только в GitHub Secrets и локальном `.env` (в `.gitignore`).
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` — only in GitHub Secrets and a local `.env` (listed in `.gitignore`).
 
-## 12. Этапы
+## 12. Stages
 
-1. Каркас репозитория, модель, CI, первый тест
-2. Коллектор DOU + тесты на фикстурах
-3. Коллектор JustJoin.it + тесты
-4. Матчер по правилам + табличные тесты
-5. Google-таблица + Telegram
-6. Расписание в GitHub Actions, README с архитектурой
-7. (v2) No Fluff Jobs, LLM-оценка, кнопки статусов
+1. Repository skeleton, model, CI, first test
+2. DOU collector + fixture-based tests
+3. JustJoin.it collector + tests
+4. Rule-based matcher + table-driven tests
+5. Google Sheet + Telegram
+6. GitHub Actions schedule, README with architecture
+7. (v2) No Fluff Jobs, LLM scoring, status buttons
 
-Ритм: 4–6 часов в неделю. Поиск работы вручную не ждёт тулзу.
+Pace: 4–6 hours per week. The manual job search does not wait for the tool.
 
-## 13. Открытые вопросы
+## 13. Open questions
 
-- Репозиторий публичный сразу или после этапа 4?
-- Точные способы получения данных с JustJoin.it и DOU — проверить на этапах 2–3 (API/RSS/HTML)
-- Есть ли на площадках фильтр по языку вакансии — проверить там же
-- Минимальная ставка для фильтра
+- Make the repository public right away or after stage 4?
+- Exact ways to get data from JustJoin.it and DOU — investigate in stages 2–3 (API/RSS/HTML)
+- Do the platforms offer a filter by vacancy language — check at the same time
+- Minimum rate for the filter
 
-## 14. Стартовый промпт для Claude Code
+## 14. Starting prompt for Claude Code
 
-> Прочитай docs/SPEC.md. Мы делаем MVP по этому ТЗ, этапами из раздела 12. Начни с этапа 1: создай каркас репозитория на Python 3.12 (src-layout, pyproject.toml, pytest, ruff), модель Vacancy, workflow CI в GitHub Actions и первый unit-тест. Объясняй решения коротко — это учебный проект для портфолио QA Automation.
+> Read docs/SPEC.md. We are building the MVP from this spec, in the stages from section 12. Start with stage 1: create a repository skeleton on Python 3.12 (src-layout, pyproject.toml, pytest, ruff), the Vacancy model, a GitHub Actions CI workflow and the first unit test. Explain decisions briefly — this is a learning project for a QA Automation portfolio.

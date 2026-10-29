@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml)
 
-Собирает QA-вакансии (DOU, JustJoin.it), оценивает их по профилю кандидата, присылает подходящие в Telegram и записывает в Google-таблицу. ТЗ: [docs/SPEC.md](docs/SPEC.md).
+Collects QA vacancies (DOU, JustJoin.it), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
-> Статус: этап 1 из 6 — каркас, модель `Vacancy`, CI.
+> Status: stage 1 of 6 — project skeleton, `Vacancy` model, CI.
 
-## Локальный запуск
+## Local setup
 
-Нужен Python 3.12+.
+Requires Python 3.12+.
 
 ```bash
 python -m venv .venv
@@ -19,4 +19,4 @@ ruff check . && ruff format --check .
 pytest --cov
 ```
 
-Секреты — в `.env` (шаблон: `.env.example`), в git не попадают.
+Secrets go in `.env` (template: `.env.example`); it is git-ignored.
