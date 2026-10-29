@@ -20,19 +20,31 @@ cities:
   - Wroclaw
   - Вроцлав
 
-# +5 each, at most +30.
+# +5 each, at most +30. Distinctive skills only: generic tools (Jira, Git) match every post.
 plus_keywords:
+  # automation
   - Playwright
   - Python
   - Pytest
+  - Selenium
+  - GitHub Actions
+  # API and data
   - API
   - Postman
+  - Newman
+  - SQL
+  # AI / LLM testing
   - LLM
   - AI
   - GenAI
+  - prompt injection
+  # domain
   - Stripe
+  - payments
   - SaaS
   - startup
+  - e-commerce
+  - marketplace
 
 # Any of these anywhere in the post: score 0.
 minus_keywords:
@@ -40,6 +52,9 @@ minus_keywords:
   - casino
   - iGaming
   - betting
+  # languages the candidate doesn't speak at work level
+  - German-speaking
+  - fluent German
 
 # Monthly minimum per currency (B2B, gross). A salary range reaching it earns +10.
 # TODO: placeholder values, set your own.
