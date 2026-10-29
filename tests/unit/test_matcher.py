@@ -7,7 +7,7 @@ breaks these tests.
 import pytest
 
 from job_matcher.matcher import apply, score
-from job_matcher.profile import Profile
+from job_matcher.profile import Profile, SalaryRules
 
 
 @pytest.fixture
@@ -17,7 +17,8 @@ def profile() -> Profile:
         cities=["Wrocław"],
         plus_keywords=["Playwright", "Python", "Pytest", "API", "Postman", "LLM", "AI"],
         minus_keywords=["casino", "betting"],
-        min_monthly_salary={"PLN": 20000, "USD": 5000},
+        # Round numbers keep the expected values readable: 1 USD = 4 PLN.
+        salary=SalaryRules(currency="PLN", minimum=10000, target=15000, rates={"USD": 4.0}),
     )
 
 
@@ -79,15 +80,30 @@ def test_seniority_points(profile, vacancy, seniority, expected):
 @pytest.mark.parametrize(
     ("fields", "points", "reason"),
     [
-        ({"salary_min": 18000, "salary_max": 23000, "currency": "PLN"}, 10,
-         "+10 salary up to 23000 PLN >= 20000"),
-        ({"salary_min": 6000, "currency": "USD"}, 10, "+10 salary up to 6000 USD >= 5000"),
-        ({"salary_max": 15000, "currency": "PLN"}, 0, "salary up to 15000 PLN < 20000"),
+        ({"salary_min": 16000, "salary_max": 20000, "currency": "PLN"}, 10,
+         "+10 salary up to 20000 PLN reaches the target"),
+        ({"salary_min": 16000, "currency": "PLN"}, 10,
+         "+10 salary up to 16000 PLN reaches the target"),
+        ({"salary_max": 12000, "currency": "PLN"}, 0, "salary up to 12000 PLN is below the target"),
+        ({"salary_max": 10000, "currency": "PLN"}, 0, "salary up to 10000 PLN is below the target"),
+        ({"salary_max": 5000, "currency": "USD"}, 10,
+         "+10 salary up to 5000 USD (20000 PLN) reaches the target"),
         ({"salary_max": 9000, "currency": "EUR"}, 0,
-         "salary in EUR: no minimum set for this currency"),
+         "salary up to 9000 EUR: no exchange rate, not compared"),
+        ({"salary_max": 20000, "currency": "PLN", "contract_type": "B2B"}, 10,
+         "+10 salary up to 20000 PLN, B2B reaches the target"),
         ({}, 0, None),
     ],
-    ids=["range-reaches-minimum", "only-min", "below-minimum", "unknown-currency", "no-salary"],
+    ids=[
+        "range-reaches-target",
+        "only-min",
+        "between-minimum-and-target",
+        "exactly-minimum",
+        "converted-from-usd",
+        "no-rate",
+        "contract-type-shown",
+        "no-salary",
+    ],
 )  # fmt: skip
 def test_salary(profile, vacancy, fields, points, reason):
     match = score(vacancy(**fields), profile)
@@ -95,6 +111,15 @@ def test_salary(profile, vacancy, fields, points, reason):
     assert match.score == 60 + points
     salary_reasons = [r for r in match.reasons if "salary" in r]
     assert salary_reasons == ([reason] if reason else [])
+
+
+def test_salary_reasons_never_reveal_thresholds(profile, vacancy):
+    reasons = [
+        *score(vacancy(salary_max=12000, currency="PLN"), profile).reasons,
+        *score(vacancy(salary_max=9000, currency="PLN"), profile).reasons,
+    ]
+
+    assert not any("10000" in r or "15000" in r for r in reasons), reasons
 
 
 @pytest.mark.parametrize("remote", [None, "no", "hybrid"])
@@ -119,6 +144,10 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
          "rejected: location Warszawa is not remote or Wrocław"),
         ({"remote": "hybrid", "location": None},
          "rejected: location unknown is not remote or Wrocław"),
+        ({"salary_max": 8000, "currency": "PLN"},
+         "rejected: salary up to 8000 PLN is below the minimum"),
+        ({"salary_min": 2000, "salary_max": 2400, "currency": "USD"},
+         "rejected: salary up to 2400 USD (9600 PLN) is below the minimum"),
     ],
     ids=[
         "minus-in-description",
@@ -130,6 +159,8 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         "role-not-in-test-profile",
         "on-site-elsewhere",
         "location-unknown",
+        "salary-below-minimum",
+        "converted-salary-below-minimum",
     ],
 )  # fmt: skip
 def test_hard_filters_give_zero(profile, vacancy, fields, reason):

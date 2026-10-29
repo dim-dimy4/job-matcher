@@ -56,12 +56,17 @@ minus_keywords:
   - German-speaking
   - fluent German
 
-# Monthly minimum per currency (B2B, gross). A salary range reaching it earns +10.
-# TODO: placeholder values, set your own.
-min_monthly_salary:
-  PLN: 20000
-  USD: 5000
-  EUR: 4600
+# Monthly salary thresholds in one base currency; USD/EUR are converted by the rates.
+# Compared with the top of the range. No salary in the post: not filtered, no bonus.
+# The values below are EXAMPLES. The real ones come from the SALARY_MINIMUM and
+# SALARY_TARGET environment variables (GitHub Secrets in CI, .env locally).
+salary:
+  currency: PLN
+  minimum: 12000 # below: score 0
+  target: 16000 # at or above: +10
+  rates: # approximate, 1 unit in PLN
+    USD: 3.7
+    EUR: 4.25
 
 # Vacancies scoring at least this go to Telegram.
 notify_threshold: 70

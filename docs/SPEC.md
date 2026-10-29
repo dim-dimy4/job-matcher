@@ -21,7 +21,7 @@ Stored in `config/profile.yaml`, not in code.
 - Languages: English C1; Polish B1 — filter out vacancies that require Polish C1/fluent
 - Plus keywords: Playwright, Python, Pytest, API, Postman, LLM, AI, GenAI, Stripe, SaaS, startup
 - Minus keywords: gambling, casino, iGaming, betting
-- Minimum rate: configurable field (B2B, in PLN or USD/month)
+- Salary: monthly thresholds in one base currency (PLN), USD/EUR converted by approximate rates: a hard minimum (below it: rejected) and a target (at or above it: bonus). The real values are private: `profile.yaml` holds examples, the real ones come from the `SALARY_MINIMUM` / `SALARY_TARGET` environment variables (GitHub Secrets, `.env`)
 
 ## 3. MVP scope
 
@@ -78,8 +78,8 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 
 ## 6. Matching logic (v1, rules)
 
-- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
-- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the monthly minimum for its currency (+10)
+- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); salary given and its upper bound below the minimum (no salary in the post: not filtered); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
+- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the target (+10). The contract type (B2B net vs UoP gross) is shown in the reason but not used for filtering yet. Reasons never print the thresholds
 - `requires_polish`: the vacancy text language is pl, or the requirements mention "Polish C1 / fluent Polish / język polski"
 - Every score comes with a list of reasons — for transparency and for tests
 
@@ -120,7 +120,7 @@ job-matcher/
 
 ## 11. Secrets
 
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` — only in GitHub Secrets and a local `.env` (listed in `.gitignore`).
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`, `SALARY_MINIMUM`, `SALARY_TARGET` — only in GitHub Secrets and a local `.env` (listed in `.gitignore`).
 
 ## 12. Stages
 

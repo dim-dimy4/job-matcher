@@ -38,12 +38,12 @@ JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and
 
 ## Matching
 
-Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). Hard filters (minus keywords, Polish above B1, junior, not a QA role, location) give 0; otherwise points add up: role +30, Senior/Lead +20, plus keywords +5 each (max +30), remote/Wrocław +10, salary reaching the minimum +10. Every score comes with its reasons, e.g.
+Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). Hard filters (minus keywords, Polish above B1, junior, not a QA role, location, salary below the minimum) give 0; otherwise points add up: role +30, Senior/Lead +20, plus keywords +5 each (max +30), remote/Wrocław +10, salary reaching the target +10. Salary thresholds in `profile.yaml` are examples; the real ones are read from the `SALARY_MINIMUM` and `SALARY_TARGET` environment variables. Every score comes with its reasons, e.g.
 
 ```
 80  Senior QA Automation Engineer @ Codest
     +30 role: QA; +20 seniority: senior; +10 keywords: Python, Pytest;
-    +10 remote; +10 salary up to 23000 PLN >= 20000
+    +10 remote; +10 salary up to 23000 PLN reaches the target
 ```
 
 Secrets go in `.env` (template: `.env.example`); it is git-ignored.

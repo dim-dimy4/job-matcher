@@ -24,7 +24,7 @@ def scored():
         vacancies += himalayas.parse_page(
             json.loads((FIXTURES_DIR / "himalayas" / page).read_bytes())
         )
-    profile = load_profile()
+    profile = load_profile(env={})  # example thresholds, not the private ones
     return {(v.company, v.title): apply(v, profile) for v in vacancies}, profile
 
 

@@ -52,19 +52,32 @@ def _rejections(v: Vacancy, profile: Profile) -> list[str]:
         reasons.append("rejected: not a QA role")
     if v.remote is not RemoteType.YES and not _found(profile.cities, v.location or ""):
         reasons.append(f"rejected: location {v.location or 'unknown'} is not remote or Wrocław")
+    base = _salary_in_base(v, profile)
+    if base is not None and base < profile.salary.minimum:
+        reasons.append(f"rejected: {_salary_label(v, base, profile)} is below the minimum")
     return reasons
 
 
-def _salary(v: Vacancy, profile: Profile) -> tuple[int, str | None]:
-    if v.currency is None:
-        return 0, None
-    minimum = profile.min_monthly_salary.get(v.currency)
-    if minimum is None:
-        return 0, f"salary in {v.currency}: no minimum set for this currency"
+def _salary_label(v: Vacancy, base: int | None, profile: Profile) -> str:
+    """'up to 5000 USD (18500 PLN), B2B'. Thresholds are never printed: they are private
+    and reasons may end up in CI logs."""
     top = v.salary_max if v.salary_max is not None else v.salary_min
-    if top is not None and top >= minimum:
-        return SALARY_POINTS, f"+{SALARY_POINTS} salary up to {top} {v.currency} >= {minimum}"
-    return 0, f"salary up to {top} {v.currency} < {minimum}"
+    label = f"salary up to {top} {v.currency}"
+    if base is not None and v.currency != profile.salary.currency:
+        label += f" ({base} {profile.salary.currency})"
+    # UoP is quoted gross and B2B net, so the same number means different money. Not
+    # filtered yet, only shown.
+    if v.contract_type:
+        label += f", {v.contract_type}"
+    return label
+
+
+def _salary_in_base(v: Vacancy, profile: Profile) -> int | None:
+    """Top of the salary range in the base currency; None if absent or not convertible."""
+    top = v.salary_max if v.salary_max is not None else v.salary_min
+    if top is None or v.currency is None:
+        return None
+    return profile.salary.to_base(top, v.currency)
 
 
 def score(v: Vacancy, profile: Profile) -> Match:
@@ -90,10 +103,17 @@ def score(v: Vacancy, profile: Profile) -> Match:
     where = "remote" if v.remote is RemoteType.YES else f"location: {v.location}"
     reasons.append(f"+{LOCATION_POINTS} {where}")
 
-    points, reason = _salary(v, profile)
-    total += points
-    if reason:
-        reasons.append(reason)
+    # Passed the salary filter, so a known salary is at least the minimum.
+    if v.currency is not None:
+        base = _salary_in_base(v, profile)
+        label = _salary_label(v, base, profile)
+        if base is None:
+            reasons.append(f"{label}: no exchange rate, not compared")
+        elif base >= profile.salary.target:
+            total += SALARY_POINTS
+            reasons.append(f"+{SALARY_POINTS} {label} reaches the target")
+        else:
+            reasons.append(f"{label} is below the target")
 
     return Match(total, reasons, keywords)
 
