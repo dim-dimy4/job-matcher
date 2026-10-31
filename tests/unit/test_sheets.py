@@ -23,6 +23,9 @@ class FakeWorksheet:
         return [list(r) for r in self.rows]
 
     def append_rows(self, values, value_input_option):
+        # Like Sheets: new rows go right after the last non-empty row.
+        while self.rows and not any(self.rows[-1]):
+            self.rows.pop()
         self.rows.extend(list(r) for r in values)
         self.input_options.append(value_input_option)
 
@@ -139,8 +142,9 @@ def test_tracker_reads_known_vacancies_without_the_header(make_vacancy):
     ), "the header row is not a vacancy"
 
 
-def test_empty_sheet_gets_the_header_first(make_vacancy):
-    worksheet = FakeWorksheet()
+@pytest.mark.parametrize("rows", [[], [[]]], ids=["no-rows", "one-empty-row"])
+def test_empty_sheet_gets_the_header_first(make_vacancy, rows):
+    worksheet = FakeWorksheet(rows)
     v = make_vacancy(score=80)
 
     tracker = SheetTracker(worksheet)

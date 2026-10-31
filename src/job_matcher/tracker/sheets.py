@@ -109,7 +109,8 @@ class SheetTracker:
     def __init__(self, worksheet: Worksheet) -> None:
         self._worksheet = worksheet
         rows = worksheet.get_all_values()
-        self._has_header = bool(rows)
+        # A new, empty sheet comes back as [[]], not []: one row with no cells.
+        self._has_header = bool(rows and any(rows[0]))
         self.known = KnownVacancies(rows[1:])
 
     def append(self, vacancies: Sequence[Vacancy]) -> None:
