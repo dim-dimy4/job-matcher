@@ -28,7 +28,7 @@ Stored in `config/profile.yaml`, not in code.
 **In scope:**
 - Sources: Himalayas and DOU (2 sources); see §4.1 for why not JustJoin.it
 - Collection every 3 hours via GitHub Actions (cron)
-- Normalization into a single vacancy model + deduplication by URL
+- Normalization into a single vacancy model + deduplication by URL, and by company + title across boards
 - Rule-based matching (no LLM), score 0–100
 - Vacancies with score ≥ 70 sent to Telegram
 - Matching vacancies appended to the "Job Tracker" Google Sheet
@@ -47,11 +47,13 @@ Stored in `config/profile.yaml`, not in code.
 GitHub Actions (cron, every 3 h)
   → collectors/ (one module per source)
   → normalize → Vacancy
-  → storage (SQLite: seen URLs)  — deduplication
   → matcher (rules from profile.yaml) → score + reasons
-  → notifier/telegram  (score ≥ threshold)
-  → tracker/google_sheets (append row)
+  → dedup against the Google Sheet (URL, or company + title)
+  → tracker/sheets (append rows, score ≥ threshold)
+  → notifier/telegram (the best N of them)
 ```
+
+Deduplication uses the sheet, not a local SQLite file (decided in stage 5): a GitHub Actions run starts on a clean machine, so a local file would be lost between runs, and the sheet already lists every vacancy the bot has sent. The sheet is written before Telegram: if a message fails, the vacancy is still logged and is not sent again on the next run.
 
 Collection rules: infrequent requests, a user-agent with contact info, respect robots.txt and the platforms' terms, no bypassing of protections.
 
@@ -94,7 +96,7 @@ The bot only appends rows; I maintain statuses manually.
 
 ## 8. Telegram
 
-Personal bot, one message per vacancy: title, company, location, salary range, score, 2–3 reasons, link. No spam: at most N messages per run, the rest goes only to the sheet.
+Personal bot, one message per vacancy: title, company, location, salary range, score, 2–3 reasons, link. No spam: at most 10 messages per run (the highest scores), the rest goes only to the sheet. Errors never print the bot token: it is part of the API URL, and CI logs are public.
 
 ## 9. Testing (part of the portfolio)
 
@@ -110,7 +112,7 @@ Personal bot, one message per vacancy: title, company, location, salary range, s
 job-matcher/
   src/job_matcher/
     collectors/ (himalayas.py, dou.py)
-    models.py  normalize.py  matcher.py  storage.py
+    models.py  normalize.py  profile.py  matcher.py  settings.py
     notifier/telegram.py  tracker/sheets.py  main.py
   config/profile.yaml
   tests/ (unit/, fixtures/, contract/)
@@ -120,7 +122,7 @@ job-matcher/
 
 ## 11. Secrets
 
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`, `SALARY_MINIMUM`, `SALARY_TARGET` — only in GitHub Secrets and a local `.env` (listed in `.gitignore`).
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`, `SALARY_MINIMUM`, `SALARY_TARGET` — only in GitHub Secrets and a local `.env` (listed in `.gitignore`). `GOOGLE_SERVICE_ACCOUNT_JSON` holds the key JSON itself; in a local `.env` it may be a path to the key file instead.
 
 ## 12. Stages
 
@@ -128,7 +130,7 @@ job-matcher/
 2. DOU collector + fixture-based tests
 3. Himalayas collector + tests (replaces JustJoin.it, see §4.1)
 4. Rule-based matcher + table-driven tests
-5. Google Sheet + Telegram
+5. Google Sheet + Telegram (dedup via the sheet, see §4)
 6. GitHub Actions schedule, README with architecture
 7. (v2) More sources, LLM scoring, status buttons
 
@@ -136,10 +138,10 @@ Pace: 4–6 hours per week. The manual job search does not wait for the tool.
 
 ## 13. Open questions
 
-- Make the repository public right away or after stage 4?
+- ~~Make the repository public right away or after stage 4?~~ — public after stage 4
 - ~~Exact ways to get data from the sources~~ — decided, see §4.1
 - Do the platforms offer a filter by vacancy language — check at the same time
-- Minimum rate for the filter
+- ~~Minimum rate for the filter~~ — decided, private values in `SALARY_MINIMUM` / `SALARY_TARGET` (§2)
 
 ## 14. Starting prompt for Claude Code
 
