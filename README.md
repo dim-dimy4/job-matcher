@@ -2,11 +2,12 @@
 
 [![CI](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml)
 [![Job search](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml)
+[![Status buttons](https://github.com/dim-dimy4/job-matcher/actions/workflows/buttons.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/buttons.yml)
 [![Contract tests](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml)
 
 Collects QA vacancies (DOU, Himalayas, Djinni), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
-> Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. Next (v2): more sources, LLM scoring, status buttons in Telegram.
+> Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. v2: Djinni and status buttons in Telegram are done; next is LLM scoring.
 
 ## Architecture
 
@@ -24,6 +25,7 @@ flowchart LR
     dedup -->|new| sheet[("Google Sheet<br/>Job Tracker")]
     sheet -->|"best 10"| tg["Telegram"]
     sheet -. "links, company + title" .-> dedup
+    tg -. "Applied / Skipped<br/>every 15 min" .-> sheet
 ```
 
 | Part | Module | Role |
@@ -32,9 +34,10 @@ flowchart LR
 | Matcher | [`matcher.py`](src/job_matcher/matcher.py) | Pure function `score(vacancy, profile)`: hard filters, then points, every point with a reason |
 | Tracker | [`tracker/sheets.py`](src/job_matcher/tracker/sheets.py) | Appends rows and doubles as the dedup memory: a GitHub runner starts clean, so the sheet is the state that survives between runs |
 | Notifier | [`notifier/telegram.py`](src/job_matcher/notifier/telegram.py) | One message per vacancy, at most 10 per run; written after the sheet, so a failed message is never resent |
-| Pipeline | [`main.py`](src/job_matcher/main.py) | Wiring and `--dry-run`; outputs are passed in, so tests run it with fakes |
+| Buttons | [`notifier/buttons.py`](src/job_matcher/notifier/buttons.py) | Applied / Skipped under each message: presses are fetched from Telegram and set the Status in the sheet |
+| Pipeline | [`main.py`](src/job_matcher/main.py) | Wiring, `--dry-run` and `--buttons-only`; outputs are passed in, so tests run it with fakes |
 
-Workflows: [`ci.yml`](.github/workflows/ci.yml) runs ruff and pytest on every pull request and on `main` (required to merge); [`schedule.yml`](.github/workflows/schedule.yml) runs the search every 3 hours and on demand (*Run workflow*); [`contract.yml`](.github/workflows/contract.yml) checks the live sources daily, separately, so a change on a job board doesn't block pull requests.
+Workflows: [`ci.yml`](.github/workflows/ci.yml) runs ruff and pytest on every pull request and on `main` (required to merge); [`schedule.yml`](.github/workflows/schedule.yml) runs the search every 3 hours and on demand (*Run workflow*); [`buttons.yml`](.github/workflows/buttons.yml) applies the status buttons every 15 minutes; [`contract.yml`](.github/workflows/contract.yml) checks the live sources daily, separately, so a change on a job board doesn't block pull requests.
 
 ## Local setup
 
@@ -58,6 +61,7 @@ python -m job_matcher.collectors.himalayas
 
 job-matcher --dry-run   # collect and score, print the matches; no secrets needed
 job-matcher             # full run: new matches to the sheet, the best 10 to Telegram
+job-matcher --buttons-only  # only apply the status buttons pressed in Telegram
 ```
 
 ## Sources
@@ -89,6 +93,16 @@ One-time setup (secrets go in `.env`, template `.env.example`; it is git-ignored
 1. **Telegram.** Create a bot with [@BotFather](https://t.me/BotFather) → `TELEGRAM_BOT_TOKEN`. Send the bot any message, then open `https://api.telegram.org/bot<token>/getUpdates` and copy `chat.id` → `TELEGRAM_CHAT_ID`.
 2. **Google Cloud.** Create a project, enable the *Google Sheets API*, create a service account and a JSON key for it. Put the key file next to the project as `*.service-account.json` (git-ignored) and set `GOOGLE_SERVICE_ACCOUNT_JSON` to its path; in GitHub Secrets put the JSON itself.
 3. **Sheet.** Create an empty Google Sheet, share it with the service account's `client_email` as Editor, and copy the ID from its URL (`/spreadsheets/d/<ID>/edit`) → `SHEET_ID`. The bot writes the header on the first run; add the Status dropdown yourself (Data → Data validation).
+
+### Status buttons
+
+Each message has two buttons, **Applied** and **Skipped**. A press sets the vacancy's Status in the sheet; Applied also fills *Applied on* with the date, and Skipped clears it, so a mistaken press can be taken back. The pressed button gets a ✓.
+
+The bot has no server waiting for presses: it runs in GitHub Actions. Telegram keeps presses for 24 hours, and [`buttons.yml`](.github/workflows/buttons.yml) fetches them every 15 minutes (`getUpdates`), so the status reaches the sheet some minutes after the press; every full run applies them too. Details:
+
+- Only presses by the owner (`TELEGRAM_CHAT_ID`) count.
+- A status set by hand further down the funnel (HR, Technical, Offer, Rejected…) is never overwritten by a late press.
+- Presses are confirmed to Telegram only after the sheet is written; if the sheet fails, they come back next run. Setting the same status twice changes nothing, so a repeat is harmless.
 
 The bot uses only the `spreadsheets` scope: it can edit the sheets shared with it and nothing else in Drive.
 

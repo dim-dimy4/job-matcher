@@ -1,0 +1,43 @@
+name: Status buttons
+
+on:
+  schedule:
+    # Every 15 minutes: Telegram keeps button presses for 24 hours, and the bot has no
+    # server to receive them at once, so this run picks them up and writes the sheet.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Its own group, not "job-search": in one group a new pending run cancels the older pending
+# one, and a burst of these short runs could cancel a waiting job search. Running beside
+# the search is safe: it only edits Status cells of existing rows, the search only appends,
+# and setting a status twice changes nothing.
+concurrency:
+  group: status-buttons
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - name: Apply button presses
+        run: job-matcher --buttons-only
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}

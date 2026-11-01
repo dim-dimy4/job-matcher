@@ -1,7 +1,9 @@
-"""One run of the pipeline (SPEC §4): collect → score → drop seen → sheet → Telegram.
+"""One run of the pipeline (SPEC §4): button presses → collect → score → drop seen →
+sheet → Telegram.
 
-python -m job_matcher.main            # full run, needs the secrets from .env
-python -m job_matcher.main --dry-run  # collect and score only, print the matches
+python -m job_matcher.main                 # full run, needs the secrets from .env
+python -m job_matcher.main --dry-run       # collect and score only, print the matches
+python -m job_matcher.main --buttons-only  # only apply the status buttons pressed
 """
 
 from __future__ import annotations
@@ -20,7 +22,8 @@ from job_matcher.collectors import djinni, dou, himalayas
 from job_matcher.collectors.http import make_client
 from job_matcher.matcher import apply
 from job_matcher.models import Vacancy
-from job_matcher.notifier.telegram import TelegramError, TelegramNotifier
+from job_matcher.notifier.buttons import process_presses
+from job_matcher.notifier.telegram import TelegramBot, TelegramError
 from job_matcher.profile import Profile, load_profile
 from job_matcher.settings import SettingsError, load_settings
 from job_matcher.tracker.sheets import (
@@ -114,7 +117,9 @@ def _print_matches(vacancies: Sequence[Vacancy], profile: Profile) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="job-matcher", description=__doc__.splitlines()[0])
-    parser.add_argument("--dry-run", action="store_true", help="no sheet, no Telegram: print")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--dry-run", action="store_true", help="no sheet, no Telegram: print")
+    modes.add_argument("--buttons-only", action="store_true", help="only apply button presses")
     args = parser.parse_args(argv)
 
     load_dotenv()  # local runs; in CI the variables come from GitHub Secrets
@@ -122,9 +127,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     # httpx logs every request URL at INFO, and the Telegram URL contains the bot token.
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    profile = load_profile()
     with make_client() as http:
         if args.dry_run:
+            profile = load_profile()
             _print_matches(collect_all(http), profile)
             return 0
         try:  # before collecting: a missing secret fails fast, without hitting the job boards
@@ -133,8 +138,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             log.error("%s", exc)
             return 2
         tracker = SheetTracker(open_worksheet(settings.service_account, settings.sheet_id))
-        notifier = TelegramNotifier(settings.telegram_token, settings.telegram_chat_id, http)
-        failures = run(collect_all(http), profile, tracker, notifier)
+        bot = TelegramBot(settings.telegram_token, settings.telegram_chat_id, http)
+        # Presses first, while the sheet is as it was read. A failure here is logged and
+        # doesn't stop the search: the presses wait in Telegram for the next run.
+        try:
+            process_presses(bot, tracker)
+            failures = 0
+        except TelegramError as exc:
+            log.error("Buttons: %s", exc)
+            failures = 1
+        if not args.buttons_only:
+            failures += run(collect_all(http), load_profile(), tracker, bot)
     return 1 if failures else 0
 
 

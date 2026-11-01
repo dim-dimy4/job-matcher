@@ -17,6 +17,11 @@ from pydantic import (
 )
 
 
+def url_id(url: str) -> str:
+    """Short stable id of a posting URL: fits in Telegram's 64-byte button data."""
+    return hashlib.sha256(url.encode()).hexdigest()[:16]
+
+
 class Source(StrEnum):
     HIMALAYAS = "himalayas"
     DOU = "dou"
@@ -86,7 +91,7 @@ class Vacancy(BaseModel):
     @property
     def id(self) -> str:
         """Stable dedup key: derived from the URL, so the same posting always gets the same id."""
-        return hashlib.sha256(str(self.url).encode()).hexdigest()[:16]
+        return url_id(str(self.url))
 
     @model_validator(mode="after")
     def _check_salary(self) -> Vacancy:

@@ -175,19 +175,31 @@ def wired(monkeypatch, profile, job, events):
     """main() with no .env, no network, no Google and no Telegram."""
     tracker = FakeTracker(events)
     notifier = FakeNotifier(events)
-    calls = {"collected": 0}
+    calls = {"collected": 0, "presses": 0, "profile": 0}
+
+    def process_presses(bot, tracker_):
+        assert (bot, tracker_) == (notifier, tracker)
+        calls["presses"] += 1
+        events.append("presses")
+        if calls.get("presses_fail"):
+            raise TelegramError("Telegram getUpdates returned HTTP 502")
+
+    def load_profile():
+        calls["profile"] += 1
+        return profile
 
     def collect_all(client):
         calls["collected"] += 1
         return [job(1, "Python"), job(2)]
 
     monkeypatch.setattr(pipeline, "load_dotenv", lambda: None)
-    monkeypatch.setattr(pipeline, "load_profile", lambda: profile)
+    monkeypatch.setattr(pipeline, "load_profile", load_profile)
+    monkeypatch.setattr(pipeline, "process_presses", process_presses)
     monkeypatch.setattr(pipeline, "collect_all", collect_all)
     monkeypatch.setattr(pipeline, "load_settings", lambda: SETTINGS)
     monkeypatch.setattr(pipeline, "open_worksheet", lambda info, sheet_id: "worksheet")
     monkeypatch.setattr(pipeline, "SheetTracker", lambda worksheet: tracker)
-    monkeypatch.setattr(pipeline, "TelegramNotifier", lambda token, chat_id, client: notifier)
+    monkeypatch.setattr(pipeline, "TelegramBot", lambda token, chat_id, client: notifier)
     return calls, tracker, notifier
 
 
@@ -199,12 +211,36 @@ SETTINGS = Settings(
 )
 
 
-def test_main_full_run(wired):
+def test_main_full_run(wired, events):
     _, tracker, notifier = wired
 
     assert pipeline.main([]) == 0
     assert _titles(tracker.appended) == ["Senior QA Engineer 1"]
     assert _titles(notifier.sent) == ["Senior QA Engineer 1"]
+    assert events[0] == "presses", "presses first, while the sheet is as it was read"
+
+
+def test_main_buttons_only_does_not_search(wired):
+    calls, tracker, notifier = wired
+
+    assert pipeline.main(["--buttons-only"]) == 0
+    assert calls == {"collected": 0, "presses": 1, "profile": 0}
+    assert (tracker.appended, notifier.sent) == ([], [])
+
+
+@pytest.mark.parametrize(("argv", "collected"), [([], 1), (["--buttons-only"], 0)])
+def test_main_failed_presses_fail_the_run_but_not_the_search(wired, caplog, argv, collected):
+    calls, _, _ = wired
+    calls["presses_fail"] = True
+
+    assert pipeline.main(argv) == 1
+    assert calls["collected"] == collected
+    assert "Buttons: Telegram getUpdates returned HTTP 502" in caplog.text
+
+
+def test_main_modes_exclude_each_other(wired):
+    with pytest.raises(SystemExit):
+        pipeline.main(["--dry-run", "--buttons-only"])
 
 
 def test_main_fails_when_a_message_fails(wired):
