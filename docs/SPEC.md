@@ -26,7 +26,7 @@ Stored in `config/profile.yaml`, not in code.
 ## 3. MVP scope
 
 **In scope:**
-- Sources: Himalayas and DOU (2 sources); see §4.1 for why not JustJoin.it
+- Sources: Himalayas, DOU and Djinni (Djinni added in v2); see §4.1 for why not JustJoin.it
 - Collection every 3 hours via GitHub Actions (cron)
 - Normalization into a single vacancy model + deduplication by URL, and by company + title across boards
 - Rule-based matching (no LLM), score 0–100
@@ -35,7 +35,7 @@ Stored in `config/profile.yaml`, not in code.
 - Tests and CI
 
 **Out of scope (later):**
-- Djinni, more remote job boards
+- More remote job boards (We Work Remotely, Remote OK: allowed, little QA; see §4.1)
 - LLM-based resume fit scoring (Claude API)
 - Status buttons in Telegram
 - Web dashboard
@@ -63,6 +63,10 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 |---|---|---|
 | DOU.ua | Official RSS feeds, QA category (`remote`, `relocation`) | Used |
 | Himalayas | Official public JSON API (`/jobs/api/search`, `country=PL`); API terms allow personal use, Apply must use `applicationLink` | Used |
+| Djinni | Official RSS (`primary_keyword=QA Automation` and `QA`, `employment=remote`, `exp_level=5y`) plus the schema.org `JobPosting` JSON-LD of each job page, which holds company, location and salary; robots.txt allows `/jobs/`, no published terms found; at most 30 pages per run, 2 s apart | Used (v2) |
+| We Work Remotely | Public RSS, use allowed with attribution | Allowed; skipped for now: about 2 QA jobs at a time |
+| Remote OK | Public API, use allowed with a link back | Allowed; skipped for now: no QA jobs among the latest 99 |
+| Remotive | `/api/` disallowed in robots.txt | Not used |
 | JustJoin.it | `/api/` disallowed in robots.txt; user terms §11.3 forbid automated data extraction without written consent | Not used; only job alert emails, handled manually |
 | No Fluff Jobs | `/api/` and offer pages disallowed in robots.txt, CAPTCHA on the site | Not used |
 | theprotocol.it, pracuj.pl | Behind bot protection (Cloudflare challenge) | Not used |
@@ -111,7 +115,7 @@ Personal bot, one message per vacancy: title, company, location, salary range, s
 ```
 job-matcher/
   src/job_matcher/
-    collectors/ (himalayas.py, dou.py)
+    collectors/ (himalayas.py, dou.py, djinni.py)
     models.py  normalize.py  profile.py  matcher.py  settings.py
     notifier/telegram.py  tracker/sheets.py  main.py
   config/profile.yaml

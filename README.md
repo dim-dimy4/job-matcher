@@ -4,7 +4,7 @@
 [![Job search](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml)
 [![Contract tests](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml)
 
-Collects QA vacancies (DOU, Himalayas), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
+Collects QA vacancies (DOU, Himalayas, Djinni), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
 > Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. Next (v2): more sources, LLM scoring, status buttons in Telegram.
 
@@ -16,9 +16,10 @@ flowchart LR
     subgraph collectors
         dou["DOU<br/>RSS"]
         him["Himalayas<br/>JSON API"]
+        djinni["Djinni<br/>RSS + JSON-LD"]
     end
-    main --> dou & him
-    dou & him -->|Vacancy| matcher["matcher<br/>rules from profile.yaml"]
+    main --> dou & him & djinni
+    dou & him & djinni -->|Vacancy| matcher["matcher<br/>rules from profile.yaml"]
     matcher -->|"score ≥ 70"| dedup{"already in<br/>the sheet?"}
     dedup -->|new| sheet[("Google Sheet<br/>Job Tracker")]
     sheet -->|"best 10"| tg["Telegram"]
@@ -65,6 +66,7 @@ job-matcher             # full run: new matches to the sheet, the best 10 to Tel
 |---|---|---|
 | DOU.ua | Official RSS feeds (`category=QA`, `remote` and `relocation`) | 2 requests per run, deduplicated by URL; robots.txt allows `/vacancies/` |
 | [Himalayas](https://himalayas.app) | Official public [Remote Jobs API](https://himalayas.app/api), `q=QA&country=PL` | Up to 2 pages per run; links point to the job on Himalayas, whose Apply button is the `applicationLink` required by the [API terms](https://himalayas.app/terms#api) |
+| [Djinni](https://djinni.co) | Official RSS (`QA Automation` and `QA`, remote, 5+ years), then the schema.org `JobPosting` data of each job page for company, location and salary | Up to 2 feeds + 30 job pages per run, 2 s apart; robots.txt allows `/jobs/` |
 
 JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and terms forbid automated collection (details in [SPEC §4.1](docs/SPEC.md)).
 
