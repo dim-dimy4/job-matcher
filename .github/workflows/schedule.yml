@@ -1,0 +1,43 @@
+name: Job search
+
+on:
+  schedule:
+    # Every 3 hours (UTC), at minute 17: on the hour GitHub's scheduler is busiest and
+    # delays or drops runs.
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run at a time, and a new one waits instead of cancelling: two runs in parallel could
+# both miss each other's rows in the sheet and send the same vacancy twice.
+concurrency:
+  group: job-search
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - name: Collect, score, notify
+        run: job-matcher
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SALARY_MINIMUM: ${{ secrets.SALARY_MINIMUM }}
+          SALARY_TARGET: ${{ secrets.SALARY_TARGET }}

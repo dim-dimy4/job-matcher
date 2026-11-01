@@ -1,10 +1,39 @@
 # Job Matcher
 
 [![CI](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/ci.yml)
+[![Job search](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/schedule.yml)
+[![Contract tests](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml)
 
 Collects QA vacancies (DOU, Himalayas), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
-> Status: stage 5 of 6 — collectors, matcher, Google Sheet and Telegram done; the schedule on GitHub Actions is next.
+> Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. Next (v2): more sources, LLM scoring, status buttons in Telegram.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    cron["GitHub Actions<br/>every 3 h"] --> main["main.py"]
+    subgraph collectors
+        dou["DOU<br/>RSS"]
+        him["Himalayas<br/>JSON API"]
+    end
+    main --> dou & him
+    dou & him -->|Vacancy| matcher["matcher<br/>rules from profile.yaml"]
+    matcher -->|"score ≥ 70"| dedup{"already in<br/>the sheet?"}
+    dedup -->|new| sheet[("Google Sheet<br/>Job Tracker")]
+    sheet -->|"best 10"| tg["Telegram"]
+    sheet -. "links, company + title" .-> dedup
+```
+
+| Part | Module | Role |
+|---|---|---|
+| Collectors | [`collectors/`](src/job_matcher/collectors) | One module per board, official feeds/APIs only; each normalizes into the pydantic `Vacancy` model and skips its own failures, so one broken board doesn't stop the run |
+| Matcher | [`matcher.py`](src/job_matcher/matcher.py) | Pure function `score(vacancy, profile)`: hard filters, then points, every point with a reason |
+| Tracker | [`tracker/sheets.py`](src/job_matcher/tracker/sheets.py) | Appends rows and doubles as the dedup memory: a GitHub runner starts clean, so the sheet is the state that survives between runs |
+| Notifier | [`notifier/telegram.py`](src/job_matcher/notifier/telegram.py) | One message per vacancy, at most 10 per run; written after the sheet, so a failed message is never resent |
+| Pipeline | [`main.py`](src/job_matcher/main.py) | Wiring and `--dry-run`; outputs are passed in, so tests run it with fakes |
+
+Workflows: [`ci.yml`](.github/workflows/ci.yml) runs ruff and pytest on every pull request and on `main` (required to merge); [`schedule.yml`](.github/workflows/schedule.yml) runs the search every 3 hours and on demand (*Run workflow*); [`contract.yml`](.github/workflows/contract.yml) checks the live sources daily, separately, so a change on a job board doesn't block pull requests.
 
 ## Local setup
 
@@ -60,3 +89,7 @@ One-time setup (secrets go in `.env`, template `.env.example`; it is git-ignored
 3. **Sheet.** Create an empty Google Sheet, share it with the service account's `client_email` as Editor, and copy the ID from its URL (`/spreadsheets/d/<ID>/edit`) → `SHEET_ID`. The bot writes the header on the first run; add the Status dropdown yourself (Data → Data validation).
 
 The bot uses only the `spreadsheets` scope: it can edit the sheets shared with it and nothing else in Drive.
+
+For the schedule, add the same six values as repository secrets (*Settings → Secrets and variables → Actions*): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` (the key JSON itself, not a path), `SHEET_ID`, `SALARY_MINIMUM`, `SALARY_TARGET`. GitHub masks secret values in the logs.
+
+GitHub pauses scheduled workflows in a public repository after 60 days without commits; re-enable it on the Actions tab. Scheduled runs may also start several minutes late.

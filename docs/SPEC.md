@@ -102,7 +102,7 @@ Personal bot, one message per vacancy: title, company, location, salary range, s
 
 - Unit: normalization, matching (table-driven cases via `pytest.mark.parametrize`), language detection and `requires_polish`
 - Parsers: tests on saved fixtures (HTML/JSON responses), no network
-- Contract tests: check that the source response still contains the required fields (run on a schedule, separately)
+- Contract tests: check that the source response still contains the required fields (run daily in `contract.yml`, separately from CI)
 - Integration: Telegram and Sheets via mocks
 - CI: ruff + pytest + coverage on every push; coverage report in the README
 
@@ -116,7 +116,7 @@ job-matcher/
     notifier/telegram.py  tracker/sheets.py  main.py
   config/profile.yaml
   tests/ (unit/, fixtures/, contract/)
-  .github/workflows/ (ci.yml, schedule.yml)
+  .github/workflows/ (ci.yml, schedule.yml, contract.yml)
   docs/SPEC.md  README.md
 ```
 
