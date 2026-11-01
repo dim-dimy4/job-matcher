@@ -14,7 +14,10 @@ from job_matcher.tracker.sheets import KnownVacancies
 @pytest.fixture
 def profile():
     return Profile(
-        role_keywords=["QA"], plus_keywords=["Playwright", "Python"], notify_threshold=65
+        role_keywords=["QA"],
+        remote_locations=["Poland"],
+        plus_keywords=["Playwright", "Python"],
+        notify_threshold=65,
     )
 
 
@@ -27,6 +30,7 @@ def job(make_vacancy):
             "url": f"https://jobs.dou.ua/vacancies/{n}/",
             "title": f"Senior QA Engineer {n}",
             "remote": "yes",
+            "location": "Poland",
             "seniority": "senior",
             "description": skills,
         }
@@ -226,7 +230,7 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     assert pipeline.main(["--dry-run"]) == 0
 
     out = capsys.readouterr().out
-    assert " 65  Senior QA Engineer 1 @ Acme  | remote" in out
+    assert " 65  Senior QA Engineer 1 @ Acme  | Poland · remote" in out
     assert "1 of 2 vacancies reach 65" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 

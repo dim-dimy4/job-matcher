@@ -2,6 +2,7 @@ import pytest
 
 from job_matcher.models import Language, Seniority
 from job_matcher.normalize import (
+    clean_company,
     clean_url,
     detect_language,
     detect_seniority,
@@ -91,3 +92,18 @@ def test_detect_language(text, expected):
 )
 def test_requires_polish(text, language, expected):
     assert requires_polish(text, language) is expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Codest Ltd. Company No. 12590542, VAT number: GB363431020", "Codest Ltd."),
+        ("Acme sp. z o.o., NIP 1234567890", "Acme sp. z o.o."),
+        ("Acme GmbH; Registration number HRB 123", "Acme GmbH"),
+        ("Vatican Tours", "Vatican Tours"),  # "vat" only as a whole word
+        ("ELEKS", "ELEKS"),
+    ],
+    ids=["company-no-and-vat", "nip", "registration-number", "word-inside-name", "plain"],
+)
+def test_clean_company(name, expected):
+    assert clean_company(name) == expected

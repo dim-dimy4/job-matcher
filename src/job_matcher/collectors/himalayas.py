@@ -16,7 +16,13 @@ import httpx
 
 from job_matcher.collectors.http import make_client
 from job_matcher.models import ContractType, RemoteType, Seniority, Source, Vacancy
-from job_matcher.normalize import detect_language, detect_seniority, html_to_text, requires_polish
+from job_matcher.normalize import (
+    clean_company,
+    detect_language,
+    detect_seniority,
+    html_to_text,
+    requires_polish,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +58,8 @@ def _location(countries: list[str]) -> str:
     """'Worldwide' when unrestricted; long EU-wide lists are shortened for Telegram/Sheets."""
     if not countries:
         return "Worldwide"
+    # The search is limited to Poland, so it is on the list; show it even in a long one.
+    countries = sorted(countries, key=lambda c: c != "Poland")
     shown = ", ".join(countries[:MAX_LISTED_COUNTRIES])
     hidden = len(countries) - MAX_LISTED_COUNTRIES
     return f"{shown} +{hidden} more" if hidden > 0 else shown
@@ -77,7 +85,7 @@ def parse_job(job: dict[str, Any]) -> Vacancy:
         source=Source.HIMALAYAS,
         url=job["guid"],  # the job page on Himalayas; applicationLink is the same + utm
         title=job["title"],
-        company=job["companyName"],
+        company=clean_company(job["companyName"]),
         location=_location(job.get("locationRestrictions") or []),
         remote=RemoteType.YES,  # Himalayas lists remote jobs only
         seniority=_seniority(job["title"], job.get("seniority") or []),

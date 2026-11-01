@@ -56,6 +56,7 @@ def test_good_matches_reach_the_threshold(scored, company, title):
         ("Spotter Labs", "Quality Assurance Engineer -- Junior Product Manager | AI / Trucking",
          "junior"),
         ("Synergetica", "Head of QA (in Warsaw)", "location"),
+        ("NVIDIA", "Senior QA Automation Engineer, ASIC Simulation", "stack: ASIC"),
     ],
 )  # fmt: skip
 def test_noise_is_rejected(scored, company, title, reason):
@@ -63,3 +64,17 @@ def test_noise_is_rejected(scored, company, title, reason):
 
     assert v.score == 0
     assert any(reason in r for r in v.match_reasons), v.match_reasons
+
+
+@pytest.mark.parametrize(
+    ("company", "title", "reason"),
+    [
+        ("Glorium", "Middle/Senior AQA", "+10 remote: за кордоном"),
+        ("Techstack", "Senior QA Automation Engineer",
+         "+10 remote: Київ, Харків, Львів, Вроцлав (Польща)"),
+        ("Ascendix", "QA Engineer (AI products)",
+         "+10 remote: Poland, Ukraine, Порту (Португалія)"),
+    ],
+)  # fmt: skip
+def test_remote_points_need_a_location_outside_ukraine(scored, company, title, reason):
+    assert reason in _get(scored, company, title).match_reasons

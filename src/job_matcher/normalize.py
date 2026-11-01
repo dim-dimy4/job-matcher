@@ -14,6 +14,18 @@ def clean_url(url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
 
 
+# Registration details some companies append to their name: "Codest Ltd. Company No. 125,
+# VAT number: GB36" -> "Codest Ltd.".
+_COMPANY_REGISTRATION = re.compile(
+    r"[\s,;]+(?:company\s+(?:no|number)|registration\s+(?:no|number)|vat\b|krs\b|nip\b).*$",
+    re.IGNORECASE,
+)
+
+
+def clean_company(name: str) -> str:
+    return _COMPANY_REGISTRATION.sub("", name).strip(" ,;") or name.strip()
+
+
 _TAG = re.compile(r"<[^>]+>")
 _SPACES = re.compile(r"\s+")
 

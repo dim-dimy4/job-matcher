@@ -19,6 +19,9 @@ KEYWORD_POINTS = 5
 MAX_KEYWORD_POINTS = 30
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
+# Keywords alone can lift a middle role to the threshold; a middle role is worth it only
+# with a salary range that passed the minimum.
+MIDDLE_WITHOUT_SALARY_POINTS = -20
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
 
@@ -44,6 +47,8 @@ def _rejections(v: Vacancy, profile: Profile) -> list[str]:
     reasons = []
     if minus := _found(profile.minus_keywords, f"{v.title} {v.company} {v.description}"):
         reasons.append(f"rejected: minus keywords {', '.join(minus)}")
+    if foreign := _found(profile.title_minus_keywords, v.title):
+        reasons.append(f"rejected: not the candidate's stack: {', '.join(foreign)}")
     if v.requires_polish:
         reasons.append("rejected: requires Polish above B1")
     if v.seniority is Seniority.JUNIOR or _JUNIOR_TITLE.search(v.title):
@@ -92,16 +97,27 @@ def score(v: Vacancy, profile: Profile) -> Match:
     if v.seniority in (Seniority.SENIOR, Seniority.LEAD):
         total += SENIORITY_POINTS
         reasons.append(f"+{SENIORITY_POINTS} seniority: {v.seniority}")
+    elif v.seniority is Seniority.MIDDLE and v.currency is None:
+        total += MIDDLE_WITHOUT_SALARY_POINTS
+        reasons.append(f"{MIDDLE_WITHOUT_SALARY_POINTS} middle without a salary range")
 
     if keywords:
         points = min(KEYWORD_POINTS * len(keywords), MAX_KEYWORD_POINTS)
         total += points
         reasons.append(f"+{points} keywords: {', '.join(keywords)}")
 
-    # Passed the location filter: either remote or in one of the profile's cities.
-    total += LOCATION_POINTS
-    where = "remote" if v.remote is RemoteType.YES else f"location: {v.location}"
-    reasons.append(f"+{LOCATION_POINTS} {where}")
+    # Passed the location filter: either remote or in one of the profile's cities. "Remote"
+    # alone often means remote from Ukraine (DOU), so it earns points only when the post
+    # names a place the candidate can work from.
+    location = v.location or ""
+    if v.remote is not RemoteType.YES:
+        total += LOCATION_POINTS
+        reasons.append(f"+{LOCATION_POINTS} location: {location}")
+    elif _found(profile.remote_locations + profile.cities, location):
+        total += LOCATION_POINTS
+        reasons.append(f"+{LOCATION_POINTS} remote: {location}")
+    else:
+        reasons.append(f"remote, check location: {location or 'not given'}")
 
     # Passed the salary filter, so a known salary is at least the minimum.
     if v.currency is not None:

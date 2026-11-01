@@ -15,8 +15,10 @@ def profile() -> Profile:
     return Profile(
         role_keywords=["QA", "SDET", "test automation"],
         cities=["Wrocław"],
+        remote_locations=["Poland", "за кордоном"],
         plus_keywords=["Playwright", "Python", "Pytest", "API", "Postman", "LLM", "AI"],
         minus_keywords=["casino", "betting"],
+        title_minus_keywords=["ASIC", "Golang"],
         # Round numbers keep the expected values readable: 1 USD = 4 PLN.
         salary=SalaryRules(currency="PLN", minimum=10000, target=15000, rates={"USD": 4.0}),
     )
@@ -24,10 +26,11 @@ def profile() -> Profile:
 
 @pytest.fixture
 def vacancy(make_vacancy):
-    """A remote Senior QA vacancy with no keywords: role + seniority + remote = 60."""
+    """A remote-from-Poland Senior QA vacancy with no keywords: role + seniority + remote = 60."""
 
     def _make(**overrides):
-        return make_vacancy(**{"remote": "yes", "seniority": "senior", **overrides})
+        data = {"remote": "yes", "location": "Poland", "seniority": "senior"}
+        return make_vacancy(**{**data, **overrides})
 
     return _make
 
@@ -36,7 +39,7 @@ def test_baseline_score_and_reasons(profile, vacancy):
     match = score(vacancy(), profile)
 
     assert match.score == 60
-    assert match.reasons == ["+30 role: QA", "+20 seniority: senior", "+10 remote"]
+    assert match.reasons == ["+30 role: QA", "+20 seniority: senior", "+10 remote: Poland"]
 
 
 def test_perfect_vacancy_scores_100(profile, vacancy):
@@ -71,10 +74,48 @@ def test_plus_keywords(profile, vacancy, description, points, found):
 
 @pytest.mark.parametrize(
     ("seniority", "expected"),
-    [("senior", 60), ("lead", 60), ("middle", 40), (None, 40)],
+    [("senior", 60), ("lead", 60), ("middle", 20), (None, 40)],
 )
 def test_seniority_points(profile, vacancy, seniority, expected):
     assert score(vacancy(seniority=seniority), profile).score == expected
+
+
+def test_middle_without_salary_cannot_reach_the_threshold(profile, vacancy):
+    v = vacancy(seniority="middle", description="Playwright Python Pytest API Postman LLM AI")
+
+    match = score(v, profile)
+
+    assert match.score == 50  # 30 role + 30 keywords + 10 remote - 20
+    assert "-20 middle without a salary range" in match.reasons
+
+
+def test_middle_with_a_salary_range_is_not_penalized(profile, vacancy):
+    match = score(vacancy(seniority="middle", salary_max=16000, currency="PLN"), profile)
+
+    assert match.score == 50  # 30 role + 10 remote + 10 salary
+    assert not any("middle" in r for r in match.reasons)
+
+
+@pytest.mark.parametrize(
+    ("location", "points", "reason"),
+    [
+        ("Poland", 10, "+10 remote: Poland"),
+        ("Львів, Ряшів (Польща)", 0, "remote, check location: Львів, Ряшів (Польща)"),
+        ("за кордоном", 10, "+10 remote: за кордоном"),
+        ("Київ, Вроцлав", 0, "remote, check location: Київ, Вроцлав"),
+        ("Kyiv, Wrocław", 10, "+10 remote: Kyiv, Wrocław"),
+        ("Київ, Львів", 0, "remote, check location: Київ, Львів"),
+        (None, 0, "remote, check location: not given"),
+    ],
+    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "ukraine-only",
+         "no-location"],
+)  # fmt: skip
+def test_remote_needs_a_location_the_candidate_can_work_from(profile, vacancy, location, points,
+                                                             reason):  # fmt: skip
+    match = score(vacancy(location=location), profile)
+
+    assert match.score == 50 + points
+    assert reason in match.reasons
 
 
 @pytest.mark.parametrize(
@@ -140,6 +181,10 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         ({"title": "Junior/Middle QA Engineer", "seniority": None}, "rejected: junior"),
         ({"title": "Senior Python Developer"}, "rejected: not a QA role"),
         ({"title": "Senior Software Engineer in Test"}, "rejected: not a QA role"),
+        ({"title": "Senior QA Automation Engineer, ASIC Simulation"},
+         "rejected: not the candidate's stack: ASIC"),
+        ({"title": "QA Engineer - Backend (Golang) Senior"},
+         "rejected: not the candidate's stack: Golang"),
         ({"remote": None, "location": "Warszawa"},
          "rejected: location Warszawa is not remote or Wrocław"),
         ({"remote": "hybrid", "location": None},
@@ -157,6 +202,8 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         "junior-in-title",
         "not-qa",
         "role-not-in-test-profile",
+        "foreign-domain-in-title",
+        "foreign-language-in-title",
         "on-site-elsewhere",
         "location-unknown",
         "salary-below-minimum",
