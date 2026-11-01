@@ -56,6 +56,7 @@ def test_fixture_vacancy_fields(load_page):
     v = _find(parse_page(load_page("himalayas/qa_pl_page1.json")), "Codest")
 
     assert v.title == "Senior QA Automation Engineer"
+    assert v.company == "Codest Ltd.", "registration number and VAT are cut off"
     assert v.seniority is Seniority.SENIOR
     assert v.location == "Poland"
     assert (v.salary_min, v.salary_max, v.currency) == (18000, 23000, "PLN")  # monthly as is
@@ -143,9 +144,10 @@ def test_seniority(title, levels, expected):
         ([], "Worldwide"),
         (["Poland"], "Poland"),
         (["Poland", "Serbia", "Spain"], "Poland, Serbia, Spain"),
-        (["Austria", "Poland", "Serbia", "Spain", "Sweden"], "Austria, Poland, Serbia +2 more"),
+        (["Austria", "Poland", "Serbia", "Spain", "Sweden"], "Poland, Austria, Serbia +2 more"),
+        (["Albania", "Andorra", "Austria", "Poland"], "Poland, Albania, Andorra +1 more"),
     ],
-    ids=["worldwide", "one", "three", "shortened"],
+    ids=["worldwide", "one", "three", "shortened", "poland-first"],
 )
 def test_location(countries, expected):
     assert parse_job(_job(locationRestrictions=countries)).location == expected

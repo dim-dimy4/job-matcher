@@ -20,6 +20,18 @@ cities:
   - Wroclaw
   - Вроцлав
 
+# A remote post earns +10 only if its location names one of these (or a city above):
+# on DOU "віддалено" from Kyiv/Lviv often means "from Ukraine". Otherwise: "check location".
+remote_locations:
+  - Poland
+  - Польща
+  - Polska
+  - EU
+  - Europe
+  - Європа
+  - за кордоном
+  - Worldwide
+
 # +5 each, at most +30. Distinctive skills only: generic tools (Jira, Git) match every post.
 plus_keywords:
   # automation
@@ -55,6 +67,18 @@ minus_keywords:
   # languages the candidate doesn't speak at work level
   - German-speaking
   - fluent German
+
+# In the title only: another stack or domain is the main job. Kept out of minus_keywords,
+# where "hardware" or "performance" in a description would reject good posts.
+title_minus_keywords:
+  - ASIC
+  - FPGA
+  - embedded
+  - hardware
+  - firmware
+  - Golang
+  - performance
+  - load testing
 
 # Monthly salary thresholds in one base currency; USD/EUR are converted by the rates.
 # Compared with the top of the range. No salary in the post: not filtered, no bonus.

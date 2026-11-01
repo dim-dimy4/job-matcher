@@ -80,8 +80,8 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 
 ## 6. Matching logic (v1, rules)
 
-- Hard filters (score 0 immediately): minus keywords; `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); salary given and its upper bound below the minimum (no salary in the post: not filtered); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
-- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the target (+10). The contract type (B2B net vs UoP gross) is shown in the reason but not used for filtering yet. Reasons never print the thresholds
+- Hard filters (score 0 immediately): minus keywords; a title naming another stack or domain (`title_minus_keywords`: ASIC, embedded, Golang, performance…); `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); salary given and its upper bound below the minimum (no salary in the post: not filtered); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
+- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the target (+10), middle without a salary range (−20, so keywords alone can't lift it to 70). Remote earns +10 only when the location names Poland/EU/abroad/worldwide or a profile city (`remote_locations`): on DOU, remote from Kyiv often means "from Ukraine"; otherwise the reason says "check location" (decided after stage 6). The contract type (B2B net vs UoP gross) is shown in the reason but not used for filtering yet. Reasons never print the thresholds
 - `requires_polish`: the vacancy text language is pl, or the requirements mention "Polish C1 / fluent Polish / język polski"
 - Every score comes with a list of reasons — for transparency and for tests
 

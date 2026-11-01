@@ -50,8 +50,11 @@ class Profile(BaseModel):
 
     role_keywords: list[str] = Field(min_length=1)
     cities: list[str] = Field(default_factory=list)
+    # A remote post must name one of these (or a city) to earn the location points.
+    remote_locations: list[str] = Field(default_factory=list)
     plus_keywords: list[str] = Field(default_factory=list)
-    minus_keywords: list[str] = Field(default_factory=list)
+    minus_keywords: list[str] = Field(default_factory=list)  # anywhere in the post
+    title_minus_keywords: list[str] = Field(default_factory=list)  # in the title only
     salary: SalaryRules = Field(default_factory=SalaryRules)
     notify_threshold: int = Field(default=70, ge=0, le=100)
 
