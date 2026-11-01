@@ -37,7 +37,6 @@ Stored in `config/profile.yaml`, not in code.
 **Out of scope (later):**
 - More remote job boards (We Work Remotely, Remote OK: allowed, little QA; see §4.1)
 - LLM-based resume fit scoring (Claude API)
-- Status buttons in Telegram
 - Web dashboard
 - LinkedIn — do not scrape (violates the platform's terms); only job alert emails, handled manually
 
@@ -96,11 +95,13 @@ Date | Source | Company | Vacancy | Link | Location/format | Salary range | Scor
 
 Statuses (dropdown): New · Applied · HR · Test task · Technical · Offer · Rejected · Skipped
 
-The bot only appends rows; I maintain statuses manually.
+The bot appends rows with status New. The Telegram buttons (§8) set Applied or Skipped; the later statuses I set by hand, and a button never overwrites them.
 
 ## 8. Telegram
 
 Personal bot, one message per vacancy: title, company, location, salary range, score, 2–3 reasons, link. No spam: at most 10 messages per run (the highest scores), the rest goes only to the sheet. Errors never print the bot token: it is part of the API URL, and CI logs are public.
+
+Status buttons (v2): **Applied** and **Skipped** under each message. The bot has no server, so presses are fetched with `getUpdates` by `buttons.yml` every 15 minutes (Telegram keeps them for 24 hours) and at the start of every full run; the status reaches the sheet minutes after the press, not at once. A webhook on a serverless function would be instant but adds a deploy, a second place for secrets and more to break; for a personal tracker a few minutes is fine. Button data is `<status>:<vacancy id>` (the id is a hash of the URL, within Telegram's 64-byte limit), and the row is found by the same hash of its link. Applied fills *Applied on*; Skipped clears it. Only the owner's presses count. Presses are confirmed after the sheet is written (at-least-once; writes are idempotent).
 
 ## 9. Testing (part of the portfolio)
 
@@ -117,10 +118,10 @@ job-matcher/
   src/job_matcher/
     collectors/ (himalayas.py, dou.py, djinni.py)
     models.py  normalize.py  profile.py  matcher.py  settings.py
-    notifier/telegram.py  tracker/sheets.py  main.py
+    notifier/ (telegram.py, buttons.py)  tracker/sheets.py  main.py
   config/profile.yaml
   tests/ (unit/, fixtures/, contract/)
-  .github/workflows/ (ci.yml, schedule.yml, contract.yml)
+  .github/workflows/ (ci.yml, schedule.yml, buttons.yml, contract.yml)
   docs/SPEC.md  README.md
 ```
 

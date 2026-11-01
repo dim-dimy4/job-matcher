@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import date
+from enum import StrEnum
 from typing import Any, Protocol
 
 import gspread
+from gspread.utils import rowcol_to_a1
 
-from job_matcher.models import RemoteType, Vacancy
+from job_matcher.models import RemoteType, Vacancy, url_id
 
 HEADER = [
     "Date", "Source", "Company", "Vacancy", "Link", "Location/format", "Salary range",
@@ -21,20 +24,28 @@ HEADER = [
     "Test task", "Tech", "Rejection reason", "Notes",
 ]  # fmt: skip
 COMPANY, VACANCY, LINK = HEADER.index("Company"), HEADER.index("Vacancy"), HEADER.index("Link")
+STATUS, APPLIED_ON = HEADER.index("Status"), HEADER.index("Applied on")
 NEW_STATUS = "New"
+APPLIED, SKIPPED = "Applied", "Skipped"
+# The statuses a Telegram button may overwrite. Later ones (HR, Offer…) are set by hand in
+# the sheet, and a late or repeated press must not roll them back.
+BUTTON_STATUSES = (APPLIED, SKIPPED)
+_REPLACEABLE = {"", NEW_STATUS, *BUTTON_STATUSES}
 
 # Reading and appending rows of one spreadsheet, nothing more (no access to the rest of Drive).
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 
 class Worksheet(Protocol):
-    """The two gspread calls the tracker uses; tests pass an in-memory fake."""
+    """The gspread calls the tracker uses; tests pass an in-memory fake."""
 
     def get_all_values(self) -> list[list[str]]: ...
 
     def append_rows(
         self, values: Sequence[Sequence[str | int]], value_input_option: Any
     ) -> Any: ...
+
+    def batch_update(self, data: Sequence[Mapping[str, Any]], value_input_option: Any) -> Any: ...
 
 
 def open_worksheet(service_account: Mapping[str, Any], sheet_id: str) -> Worksheet:
@@ -105,6 +116,13 @@ def to_row(v: Vacancy) -> list[str | int]:
     ]
 
 
+class StatusChange(StrEnum):
+    SET = "set"
+    UNCHANGED = "unchanged"  # the same button pressed again
+    KEPT = "kept"  # the row is further down the funnel than a button can set
+    NOT_FOUND = "not found"
+
+
 class SheetTracker:
     def __init__(self, worksheet: Worksheet) -> None:
         self._worksheet = worksheet
@@ -112,6 +130,33 @@ class SheetTracker:
         # A new, empty sheet comes back as [[]], not []: one row with no cells.
         self._has_header = bool(rows and any(rows[0]))
         self.known = KnownVacancies(rows[1:])
+        # Row numbers by vacancy id: rows are only ever appended, so they stay valid.
+        self._rows = {
+            url_id(row[LINK]): (n, row) for n, row in enumerate(rows, 1) if len(row) > LINK
+        }
+
+    def set_status(self, vacancy_id: str, status: str, today: date) -> StatusChange:
+        """Status from a button. "Applied" also fills "Applied on" unless it is already set;
+        "Skipped" clears it, so a mistaken "Applied" can be taken back."""
+        if vacancy_id not in self._rows:
+            return StatusChange.NOT_FOUND
+        n, row = self._rows[vacancy_id]
+        row = row + [""] * (len(HEADER) - len(row))  # trailing empty cells are not returned
+        if row[STATUS] == status:
+            return StatusChange.UNCHANGED
+        if row[STATUS] not in _REPLACEABLE:
+            return StatusChange.KEPT
+        applied_on = (row[APPLIED_ON] or today.isoformat()) if status == APPLIED else ""
+        self._worksheet.batch_update(
+            [
+                {"range": rowcol_to_a1(n, STATUS + 1), "values": [[status]]},
+                {"range": rowcol_to_a1(n, APPLIED_ON + 1), "values": [[applied_on]]},
+            ],
+            value_input_option="RAW",
+        )
+        row[STATUS], row[APPLIED_ON] = status, applied_on
+        self._rows[vacancy_id] = (n, row)
+        return StatusChange.SET
 
     def append(self, vacancies: Sequence[Vacancy]) -> None:
         rows = [to_row(v) for v in vacancies]

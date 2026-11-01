@@ -1,6 +1,6 @@
 """The Google Sheet tracker against an in-memory worksheet; no Google API calls."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -9,6 +9,7 @@ from job_matcher.tracker.sheets import (
     HEADER,
     KnownVacancies,
     SheetTracker,
+    StatusChange,
     same_job_key,
     to_row,
 )
@@ -29,10 +30,19 @@ class FakeWorksheet:
         self.rows.extend(list(r) for r in values)
         self.input_options.append(value_input_option)
 
+    def batch_update(self, data, value_input_option):
+        for cell in data:
+            column, row = cell["range"][0], int(cell["range"][1:])  # "J5": single letters only
+            line = self.rows[row - 1]
+            line.extend([""] * (len(HEADER) - len(line)))
+            line[ord(column) - ord("A")] = cell["values"][0][0]
+        self.input_options.append(value_input_option)
 
-def _sheet_row(company, title, url):
+
+def _sheet_row(company, title, url, status="New", applied_on=""):
     row = [""] * len(HEADER)
     row[sheets.COMPANY], row[sheets.VACANCY], row[sheets.LINK] = company, title, url
+    row[sheets.STATUS], row[sheets.APPLIED_ON] = status, applied_on
     return row
 
 
@@ -192,3 +202,88 @@ def test_open_worksheet_asks_only_for_the_sheets_scope(monkeypatch):
         "scopes": ["https://www.googleapis.com/auth/spreadsheets"],
         "key": "sheet-id",
     }
+
+
+# ---------- statuses from the Telegram buttons ----------
+
+URL = "https://a.example/1"
+TODAY = date(2026, 11, 1)
+
+
+def _status_sheet(status="New", applied_on=""):
+    other = _sheet_row("Beta", "QA Lead", "https://a.example/2")
+    return FakeWorksheet([HEADER, other, _sheet_row("Acme", "Senior QA", URL, status, applied_on)])
+
+
+def _cells(worksheet, n=3):
+    row = worksheet.rows[n - 1]
+    return row[sheets.STATUS], row[sheets.APPLIED_ON]
+
+
+def test_applied_sets_status_and_date_raw(make_vacancy):
+    worksheet = _status_sheet()
+
+    change = SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
+
+    assert change is StatusChange.SET
+    assert _cells(worksheet) == ("Applied", "2026-11-01")
+    assert _cells(worksheet, 2) == ("New", ""), "only the pressed vacancy's row changes"
+    assert worksheet.input_options == ["RAW"]
+
+
+def test_applied_keeps_a_date_already_there(make_vacancy):
+    worksheet = _status_sheet(status="Skipped", applied_on="2026-10-20")
+
+    SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
+
+    assert _cells(worksheet) == ("Applied", "2026-10-20")
+
+
+def test_skipped_takes_back_a_mistaken_applied(make_vacancy):
+    worksheet = _status_sheet()
+    tracker = SheetTracker(worksheet)
+    vacancy_id = make_vacancy(url=URL).id
+
+    tracker.set_status(vacancy_id, "Applied", TODAY)
+    change = tracker.set_status(vacancy_id, "Skipped", TODAY)
+
+    assert change is StatusChange.SET, "the tracker sees its own first change"
+    assert _cells(worksheet) == ("Skipped", "")
+
+
+@pytest.mark.parametrize("status", ["HR", "Technical", "Offer", "Rejected"])
+def test_a_status_set_by_hand_is_kept(make_vacancy, status):
+    worksheet = _status_sheet(status=status)
+
+    change = SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
+
+    assert change is StatusChange.KEPT
+    assert worksheet.input_options == []
+
+
+def test_the_same_status_again_writes_nothing(make_vacancy):
+    worksheet = _status_sheet(status="Skipped")
+
+    change = SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Skipped", TODAY)
+
+    assert change is StatusChange.UNCHANGED
+    assert worksheet.input_options == []
+
+
+def test_a_row_without_trailing_cells_is_updated(make_vacancy):
+    short = _sheet_row("Acme", "Senior QA", URL, status="")[: sheets.LINK + 1]
+    worksheet = FakeWorksheet([HEADER, short])
+
+    change = SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
+
+    assert change is StatusChange.SET
+    assert _cells(worksheet, 2) == ("Applied", "2026-11-01")
+
+
+def test_unknown_vacancy_is_not_found():
+    worksheet = _status_sheet()
+
+    assert SheetTracker(worksheet).set_status("ffffffffffffffff", "Applied", TODAY) is (
+        StatusChange.NOT_FOUND
+    )
+    assert worksheet.input_options == []
