@@ -13,6 +13,16 @@ def test_real_profile_loads():
     assert 0 <= profile.notify_threshold <= 100
 
 
+def test_default_profile_is_found_from_the_working_directory(tmp_path, monkeypatch):
+    # The scheduled run uses a regular (not editable) install: the package sits in
+    # site-packages, and config/ is only in the checked-out repository.
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "profile.yaml").write_text("role_keywords: [SDET]\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert load_profile(env={}).role_keywords == ["SDET"]
+
+
 def test_profile_from_custom_path(tmp_path):
     path = tmp_path / "profile.yaml"
     path.write_text("role_keywords: [QA]\nnotify_threshold: 50\n", encoding="utf-8")
