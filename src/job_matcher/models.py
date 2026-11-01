@@ -20,6 +20,7 @@ from pydantic import (
 class Source(StrEnum):
     HIMALAYAS = "himalayas"
     DOU = "dou"
+    DJINNI = "djinni"
 
 
 class RemoteType(StrEnum):

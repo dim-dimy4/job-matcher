@@ -16,7 +16,7 @@ from typing import Protocol
 import httpx
 from dotenv import load_dotenv
 
-from job_matcher.collectors import dou, himalayas
+from job_matcher.collectors import djinni, dou, himalayas
 from job_matcher.collectors.http import make_client
 from job_matcher.matcher import apply
 from job_matcher.models import Vacancy
@@ -51,7 +51,7 @@ class Notifier(Protocol):
 
 def collect_all(client: httpx.Client) -> list[Vacancy]:
     # Each collector logs and skips its own failures, so one broken board doesn't stop the run.
-    return [*dou.collect(client), *himalayas.collect(client)]
+    return [*dou.collect(client), *himalayas.collect(client), *djinni.collect(client)]
 
 
 def select_new(
