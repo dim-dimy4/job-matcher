@@ -10,7 +10,9 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, model_validator
 
-DEFAULT_PROFILE_PATH = Path(__file__).resolve().parents[2] / "config" / "profile.yaml"
+# Relative to the working directory (the repository root), not to this file: once the
+# package is installed into site-packages, there is no config/ next to it.
+DEFAULT_PROFILE_PATH = Path("config") / "profile.yaml"
 
 # The real salary thresholds are private: the public profile.yaml holds example values,
 # and these variables (GitHub Secrets in CI, .env locally) replace them at load time.
