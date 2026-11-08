@@ -8,6 +8,7 @@ from job_matcher.tracker import sheets
 from job_matcher.tracker.sheets import (
     HEADER,
     KnownVacancies,
+    SheetError,
     SheetTracker,
     StatusChange,
     same_job_key,
@@ -39,10 +40,15 @@ class FakeWorksheet:
         self.input_options.append(value_input_option)
 
 
+COL = sheets.DEFAULT_COLUMNS
+
+
 def _sheet_row(company, title, url, status="New", applied_on=""):
     row = [""] * len(HEADER)
-    row[sheets.COMPANY], row[sheets.VACANCY], row[sheets.LINK] = company, title, url
-    row[sheets.STATUS], row[sheets.APPLIED_ON] = status, applied_on
+    cells = {"Company": company, "Vacancy": title, "Link": url, "Status": status,
+             "Applied on": applied_on}  # fmt: skip
+    for name, value in cells.items():
+        row[COL[name]] = value
     return row
 
 
@@ -63,7 +69,7 @@ def test_row_matches_the_header(make_vacancy):
         collected_at=datetime(2026, 10, 31, 9, 0, tzinfo=UTC),
     )
 
-    assert dict(zip(HEADER, to_row(v), strict=False)) == {
+    assert to_row(v) == {
         "Date": "2026-10-31",
         "Source": "himalayas",
         "Company": "Codest",
@@ -105,7 +111,7 @@ def test_location_format(make_vacancy, fields, expected):
 
 
 def test_unscored_vacancy_has_an_empty_score_cell(make_vacancy):
-    assert to_row(make_vacancy())[HEADER.index("Score")] == ""
+    assert to_row(make_vacancy())["Score"] == ""
 
 
 @pytest.mark.parametrize(
@@ -217,7 +223,7 @@ def _status_sheet(status="New", applied_on=""):
 
 def _cells(worksheet, n=3):
     row = worksheet.rows[n - 1]
-    return row[sheets.STATUS], row[sheets.APPLIED_ON]
+    return row[COL["Status"]], row[COL["Applied on"]]
 
 
 def test_applied_sets_status_and_date_raw(make_vacancy):
@@ -271,7 +277,7 @@ def test_the_same_status_again_writes_nothing(make_vacancy):
 
 
 def test_a_row_without_trailing_cells_is_updated(make_vacancy):
-    short = _sheet_row("Acme", "Senior QA", URL, status="")[: sheets.LINK + 1]
+    short = _sheet_row("Acme", "Senior QA", URL, status="")[: COL["Link"] + 1]
     worksheet = FakeWorksheet([HEADER, short])
 
     change = SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
@@ -287,3 +293,58 @@ def test_unknown_vacancy_is_not_found():
         StatusChange.NOT_FOUND
     )
     assert worksheet.input_options == []
+
+
+# ---------- columns are found by name ----------
+
+# The user's sheet: "Comment" added by hand, "Notes" moved to the front, "HR" removed.
+MOVED = ["Notes", "Date", "Source", "Company", "Vacancy", "Link", "Location/format",
+         "Salary range", "Score", "Reasons", "Status", "Comment", "Resume version",
+         "Applied on", "Response on"]  # fmt: skip
+
+
+def _moved_row(**cells):
+    row = [""] * len(MOVED)
+    for name, value in cells.items():
+        row[MOVED.index(name)] = value
+    return row
+
+
+def test_moved_columns_still_find_known_vacancies(make_vacancy):
+    worksheet = FakeWorksheet([MOVED, _moved_row(Company="Acme", Vacancy="Senior QA", Link=URL)])
+
+    tracker = SheetTracker(worksheet)
+
+    assert make_vacancy(url=URL) in tracker.known
+    assert make_vacancy(url="https://a.example/9", company="Acme", title="Senior QA") in (
+        tracker.known
+    )
+
+
+def test_new_rows_follow_the_sheet_layout(make_vacancy):
+    worksheet = FakeWorksheet([MOVED])
+
+    SheetTracker(worksheet).append([make_vacancy(url=URL, score=80)])
+
+    row = worksheet.rows[1]
+    assert row[MOVED.index("Link")] == URL
+    assert row[MOVED.index("Status")] == "New"
+    assert row[MOVED.index("Notes")] == "", "a column the bot doesn't fill stays empty"
+
+
+def test_a_button_writes_under_the_right_headings(make_vacancy):
+    worksheet = FakeWorksheet([MOVED, _moved_row(Link=URL, Status="New")])
+
+    SheetTracker(worksheet).set_status(make_vacancy(url=URL).id, "Applied", TODAY)
+
+    row = worksheet.rows[1]
+    assert row[MOVED.index("Status")] == "Applied"
+    assert row[MOVED.index("Applied on")] == "2026-11-01"
+    assert row[MOVED.index("Resume version")] == "", "the column right after Comment"
+
+
+def test_a_missing_column_is_an_error():
+    header = [name for name in HEADER if name not in ("Link", "Applied on")]
+
+    with pytest.raises(SheetError, match="no column\\(s\\): Link, Applied on"):
+        SheetTracker(FakeWorksheet([header]))

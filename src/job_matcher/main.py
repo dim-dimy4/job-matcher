@@ -28,6 +28,7 @@ from job_matcher.profile import Profile, load_profile
 from job_matcher.settings import SettingsError, load_settings
 from job_matcher.tracker.sheets import (
     KnownVacancies,
+    SheetError,
     SheetTracker,
     location_format,
     open_worksheet,
@@ -137,7 +138,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         except SettingsError as exc:
             log.error("%s", exc)
             return 2
-        tracker = SheetTracker(open_worksheet(settings.service_account, settings.sheet_id))
+        try:
+            tracker = SheetTracker(open_worksheet(settings.service_account, settings.sheet_id))
+        except SheetError as exc:
+            log.error("Sheet: %s", exc)
+            return 2
         bot = TelegramBot(settings.telegram_token, settings.telegram_chat_id, http)
         # Presses first, while the sheet is as it was read. A failure here is logged and
         # doesn't stop the search: the presses wait in Telegram for the next run.
