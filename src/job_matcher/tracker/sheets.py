@@ -18,13 +18,16 @@ from gspread.utils import rowcol_to_a1
 
 from job_matcher.models import RemoteType, Vacancy, url_id
 
+# The header the bot writes on an empty sheet. Columns are found by name, not position:
+# adding, removing or moving a column by hand in the sheet breaks nothing.
 HEADER = [
     "Date", "Source", "Company", "Vacancy", "Link", "Location/format", "Salary range",
-    "Score", "Reasons", "Status", "Resume version", "Applied on", "Response on", "HR",
-    "Test task", "Tech", "Rejection reason", "Notes",
+    "Score", "Reasons", "Status", "Comment", "Resume version", "Applied on", "Response on",
+    "HR", "Test task", "Tech", "Rejection reason", "Notes",
 ]  # fmt: skip
-COMPANY, VACANCY, LINK = HEADER.index("Company"), HEADER.index("Vacancy"), HEADER.index("Link")
-STATUS, APPLIED_ON = HEADER.index("Status"), HEADER.index("Applied on")
+WRITTEN = HEADER[: HEADER.index("Status") + 1]  # filled by the bot for every new vacancy
+REQUIRED_COLUMNS = (*WRITTEN, "Applied on")
+DEFAULT_COLUMNS = {name: i for i, name in enumerate(HEADER)}
 NEW_STATUS = "New"
 APPLIED, SKIPPED = "Applied", "Skipped"
 # The statuses a Telegram button may overwrite. Later ones (HR, Offer…) are set by hand in
@@ -53,6 +56,19 @@ def open_worksheet(service_account: Mapping[str, Any], sheet_id: str) -> Workshe
     return client.open_by_key(sheet_id).sheet1
 
 
+class SheetError(ValueError):
+    pass
+
+
+def find_columns(header: Sequence[str]) -> dict[str, int]:
+    """Column positions by name. A missing column the bot writes is an error: guessing its
+    place would put values under the wrong heading."""
+    columns = {name.strip(): i for i, name in enumerate(header) if name.strip()}
+    if missing := [name for name in REQUIRED_COLUMNS if name not in columns]:
+        raise SheetError(f"the sheet header has no column(s): {', '.join(missing)}")
+    return columns
+
+
 _NON_WORD = re.compile(r"\W+")
 
 
@@ -64,13 +80,16 @@ def same_job_key(company: str, title: str) -> str:
 class KnownVacancies:
     """Seen vacancies, matched by URL or by company + title."""
 
-    def __init__(self, rows: Iterable[Sequence[str]] = ()) -> None:
+    def __init__(
+        self, rows: Iterable[Sequence[str]] = (), columns: Mapping[str, int] = DEFAULT_COLUMNS
+    ) -> None:
         self._urls: set[str] = set()
         self._jobs: set[str] = set()
+        company, title, link = columns["Company"], columns["Vacancy"], columns["Link"]
         for row in rows:
-            if len(row) > LINK:
-                self._urls.add(row[LINK])
-                self._jobs.add(same_job_key(row[COMPANY], row[VACANCY]))
+            if len(row) > max(company, title, link):
+                self._urls.add(row[link])
+                self._jobs.add(same_job_key(row[company], row[title]))
 
     def __contains__(self, v: Vacancy) -> bool:
         return str(v.url) in self._urls or same_job_key(v.company, v.title) in self._jobs
@@ -100,20 +119,20 @@ def location_format(v: Vacancy) -> str:
     return " · ".join(part for part in (v.location, work_format) if part)
 
 
-def to_row(v: Vacancy) -> list[str | int]:
-    """The bot fills the first ten columns; the rest are for manual tracking."""
-    return [
-        v.collected_at.date().isoformat(),
-        v.source,
-        v.company,
-        v.title,
-        str(v.url),
-        location_format(v),
-        salary_range(v),
-        v.score if v.score is not None else "",
-        "; ".join(v.match_reasons),
-        NEW_STATUS,
-    ]
+def to_row(v: Vacancy) -> dict[str, str | int]:
+    """The values the bot fills, by column name; the other columns are for manual tracking."""
+    return {
+        "Date": v.collected_at.date().isoformat(),
+        "Source": v.source,
+        "Company": v.company,
+        "Vacancy": v.title,
+        "Link": str(v.url),
+        "Location/format": location_format(v),
+        "Salary range": salary_range(v),
+        "Score": v.score if v.score is not None else "",
+        "Reasons": "; ".join(v.match_reasons),
+        "Status": NEW_STATUS,
+    }
 
 
 class StatusChange(StrEnum):
@@ -129,10 +148,12 @@ class SheetTracker:
         rows = worksheet.get_all_values()
         # A new, empty sheet comes back as [[]], not []: one row with no cells.
         self._has_header = bool(rows and any(rows[0]))
-        self.known = KnownVacancies(rows[1:])
+        self._columns = find_columns(rows[0]) if self._has_header else DEFAULT_COLUMNS
+        self.known = KnownVacancies(rows[1:], self._columns)
         # Row numbers by vacancy id: rows are only ever appended, so they stay valid.
+        link = self._columns["Link"]
         self._rows = {
-            url_id(row[LINK]): (n, row) for n, row in enumerate(rows, 1) if len(row) > LINK
+            url_id(row[link]): (n, row) for n, row in enumerate(rows, 1) if len(row) > link
         }
 
     def set_status(self, vacancy_id: str, status: str, today: date) -> StatusChange:
@@ -141,25 +162,32 @@ class SheetTracker:
         if vacancy_id not in self._rows:
             return StatusChange.NOT_FOUND
         n, row = self._rows[vacancy_id]
-        row = row + [""] * (len(HEADER) - len(row))  # trailing empty cells are not returned
-        if row[STATUS] == status:
+        status_at, applied_at = self._columns["Status"], self._columns["Applied on"]
+        row = row + [""] * (max(status_at, applied_at) + 1 - len(row))  # trailing empties
+        if row[status_at] == status:
             return StatusChange.UNCHANGED
-        if row[STATUS] not in _REPLACEABLE:
+        if row[status_at] not in _REPLACEABLE:
             return StatusChange.KEPT
-        applied_on = (row[APPLIED_ON] or today.isoformat()) if status == APPLIED else ""
+        applied_on = (row[applied_at] or today.isoformat()) if status == APPLIED else ""
         self._worksheet.batch_update(
             [
-                {"range": rowcol_to_a1(n, STATUS + 1), "values": [[status]]},
-                {"range": rowcol_to_a1(n, APPLIED_ON + 1), "values": [[applied_on]]},
+                {"range": rowcol_to_a1(n, status_at + 1), "values": [[status]]},
+                {"range": rowcol_to_a1(n, applied_at + 1), "values": [[applied_on]]},
             ],
             value_input_option="RAW",
         )
-        row[STATUS], row[APPLIED_ON] = status, applied_on
+        row[status_at], row[applied_at] = status, applied_on
         self._rows[vacancy_id] = (n, row)
         return StatusChange.SET
 
+    def _layout(self, values: Mapping[str, str | int]) -> list[str | int]:
+        row: list[str | int] = [""] * (max(self._columns[name] for name in values) + 1)
+        for name, value in values.items():
+            row[self._columns[name]] = value
+        return row
+
     def append(self, vacancies: Sequence[Vacancy]) -> None:
-        rows = [to_row(v) for v in vacancies]
+        rows = [self._layout(to_row(v)) for v in vacancies]
         if not self._has_header:
             rows.insert(0, list(HEADER))
         if not rows:

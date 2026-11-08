@@ -8,7 +8,7 @@ from job_matcher import main as pipeline
 from job_matcher.notifier.telegram import TelegramError
 from job_matcher.profile import Profile
 from job_matcher.settings import Settings, SettingsError
-from job_matcher.tracker.sheets import KnownVacancies
+from job_matcher.tracker.sheets import KnownVacancies, SheetError
 
 
 @pytest.fixture
@@ -261,6 +261,19 @@ def test_main_stops_before_collecting_without_secrets(wired, monkeypatch, caplog
     assert pipeline.main([]) == 2
     assert calls["collected"] == 0
     assert "missing environment variables: SHEET_ID" in caplog.text
+
+
+def test_main_stops_on_a_broken_sheet_header(wired, monkeypatch, caplog):
+    calls, _, _ = wired
+
+    def broken(worksheet):
+        raise SheetError("the sheet header has no column(s): Link")
+
+    monkeypatch.setattr(pipeline, "SheetTracker", broken)
+
+    assert pipeline.main([]) == 2
+    assert calls["collected"] == 0
+    assert "Sheet: the sheet header has no column(s): Link" in caplog.text
 
 
 def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):

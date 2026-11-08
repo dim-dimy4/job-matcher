@@ -91,7 +91,9 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 ## 7. "Job Tracker" Google Sheet
 
 Columns:
-Date | Source | Company | Vacancy | Link | Location/format | Salary range | Score | Reasons | Status | Resume version | Applied on | Response on | HR | Test task | Tech | Rejection reason | Notes
+Date | Source | Company | Vacancy | Link | Location/format | Salary range | Score | Reasons | Status | Comment | Resume version | Applied on | Response on | HR | Test task | Tech | Rejection reason | Notes
+
+Columns are found by their header, not their position: adding or moving a column by hand breaks nothing (a "Comment" column inserted by hand once shifted "Applied on", and a button wrote the date under "Resume version"). A missing column the bot writes stops the run with an error naming it.
 
 Statuses (dropdown): New · Applied · HR · Test task · Technical · Offer · Rejected · Skipped
 
