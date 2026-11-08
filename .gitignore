@@ -21,6 +21,8 @@ htmlcov/
 # Local data
 *.sqlite
 *.db
+# Labelled vacancies for calibration: full job posts and private verdicts
+data/
 
 # IDE / OS
 .idea/

@@ -7,7 +7,7 @@
 
 Collects QA vacancies (DOU, Himalayas, Djinni), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
-> Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. v2: Djinni and status buttons in Telegram are done; next is LLM scoring.
+> Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. v2: Djinni, status buttons in Telegram and a matcher calibrated on real verdicts are done; next is LLM scoring.
 
 ## Architecture
 
@@ -76,17 +76,56 @@ JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and
 
 ## Matching
 
-Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). Hard filters (minus keywords, another stack in the title, Polish above B1, junior, not a QA role, location, salary below the minimum) give 0; otherwise points add up: role +30, Senior/Lead +20, plus keywords +5 each (max +30), remote from Poland/EU/abroad or Wrocław +10, salary reaching the target +10, middle without a salary range −20. A remote post that names only Ukrainian cities gets no location points and the reason "check location". Salary thresholds in `profile.yaml` are examples; the real ones are read from the `SALARY_MINIMUM` and `SALARY_TARGET` environment variables. Every score comes with its reasons, e.g.
+Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). The target is a hybrid web/API role: manual testing plus automation in Python.
+
+- **Hard filters (score 0):** not a QA role; another stack, area or an SDET role in the title; junior; Polish above B1; minus keywords; on-site outside Wrocław; remote from Ukrainian cities only; more than 6 years of experience required; salary below the minimum.
+- **Points:**
+
+| Rule | Points |
+|---|---|
+| Middle or Senior (alike) / Lead | +20 / −15 |
+| Hands-on testing: 3+ different phrases ("manual testing", "exploratory", "test cases"…) / 1–2 | +30 / +15 |
+| Automation title (AQA, Automation) with fewer than 3 such phrases | −15 |
+| Building frameworks ("from scratch", "test infrastructure"…), 2+ mentions | −20 |
+| Mobile, load testing, data or hardware as the focus, 4+ mentions each | −25 |
+| Java, C#, .NET, Kotlin or Swift in the post | −15 |
+| Candidate's stack (Python, Pytest, Playwright, Selenium, Postman, REST/API, SQL) | +5 each, max +20 |
+| Domain (SaaS, AI/LLM, payments, marketplace, EdTech) | +5 each, max +10 |
+| Remote from Poland/EU/abroad, or Wrocław | +10 |
+| Salary reaching the target | +10 |
+
+Salary thresholds in `profile.yaml` are examples; the real ones are read from the `SALARY_MINIMUM` and `SALARY_TARGET` environment variables. Every score comes with its reasons, e.g.
 
 ```
-80  Senior QA Automation Engineer @ Codest
-    +30 role: QA; +20 seniority: senior; +10 keywords: Python, Pytest;
-    +10 remote: Poland; +10 salary up to 23000 PLN reaches the target
+85  Senior QA Automation Engineer @ FYST
+    +20 seniority: senior; +30 hands-on testing: manual testing, manual and automated,
+    manually testing; +15 stack: Python, Postman, API; +10 domain: payments, fintech;
+    +10 remote: Poland
 ```
+
+### Calibration
+
+The weights were set against the candidate's own verdicts on the first 56 vacancies the bot sent (7 fit, 5 maybe, 38 no, 6 excluded because the post was gone):
+
+| | Fit passed | No rejected |
+|---|---|---|
+| Before (role +30, seniority +20, keywords) | 6 / 7 | 6 / 38 (16%) |
+| After (the rules above, threshold 60) | 6 / 7 | 37 / 38 (97%) |
+
+The miss is a fit with no hands-on testing in the text at all, which rules can't tell from a pure automation role. The rules were tuned on the same 56 vacancies they are measured on, so 97% is optimistic; new vacancies are the real test. No rule names a company or a vacancy.
+
+The dataset (full job posts and private verdicts) is kept in a git-ignored `data/labelled/` folder; a public repository shouldn't redistribute other people's job posts. With it in place:
+
+```bash
+python -m job_matcher.calibration   # every vacancy with its score and reasons, then the two numbers
+pytest tests/unit/test_calibration.py   # fails if the rules fall below 6/7 fit or 90% no
+```
+
+In CI the real-data test is skipped; the loader and the report are tested on a tiny invented set.
 
 ## Outputs
 
-New vacancies scoring at least `notify_threshold` (70) are appended to the "Job Tracker" Google Sheet, and the 10 best of them are sent to Telegram. The sheet is also the dedup memory: a vacancy whose link, or company + title, is already there is skipped, so a job posted on both boards arrives once.
+New vacancies scoring at least `notify_threshold` (60) are appended to the "Job Tracker" Google Sheet, and the 10 best of them are sent to Telegram. The sheet is also the dedup memory: a vacancy whose link, or company + title, is already there is skipped, so a job posted on both boards arrives once.
 
 One-time setup (secrets go in `.env`, template `.env.example`; it is git-ignored):
 

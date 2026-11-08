@@ -15,11 +15,15 @@ Two goals at once:
 
 Stored in `config/profile.yaml`, not in code.
 
-- Roles: Senior QA Engineer, QA Lead, QA Automation Engineer, AI/LLM QA, SDET
-- Seniority: Senior, Lead (Middle+ allowed with low priority)
-- Locations: Wrocław (hybrid/on-site), Remote (Poland, EU, UK)
+- Work: web and API testing, a hybrid of manual testing and automation in Python, test design, releases; a noticeable manual part is ideal (revised in v2 from the verdicts on the first 56 vacancies)
+- Roles: QA Engineer, Senior QA Engineer, Full-stack QA, QA Engineer (Manual + Automation); not SDET / framework-writing roles
+- Seniority: Middle, Middle/Senior and Senior alike; Lead only with a penalty (none of the fits was a lead); Junior filtered
+- Experience required: up to 6 years
+- Locations: Wrocław (hybrid/on-site), Remote (Poland, EU, UK); not remote-from-Ukraine-only
 - Languages: English C1; Polish B1 — filter out vacancies that require Polish C1/fluent
-- Plus keywords: Playwright, Python, Pytest, API, Postman, LLM, AI, GenAI, Stripe, SaaS, startup
+- Stack: Python, pytest, requests, Playwright (Python), Selenium, Postman/REST API, SQL, Chrome DevTools, Jira
+- Domains: web SaaS, AI/LLM products, payments, marketplaces, EdTech
+- Not wanted as the main job: Java, C#, Go or JS/TS-only automation; native mobile (Appium); load testing; data/ETL; networks, hardware, embedded
 - Minus keywords: gambling, casino, iGaming, betting
 - Salary: monthly thresholds in one base currency (PLN), USD/EUR converted by approximate rates: a hard minimum (below it: rejected) and a target (at or above it: bonus). The real values are private: `profile.yaml` holds examples, the real ones come from the `SALARY_MINIMUM` / `SALARY_TARGET` environment variables (GitHub Secrets, `.env`)
 
@@ -81,10 +85,14 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 - `skills` (list: plus keywords found by the matcher), `published_at`, `collected_at`
 - `score` (0–100), `match_reasons` (list of strings)
 
-## 6. Matching logic (v1, rules)
+## 6. Matching logic (v2, rules calibrated on real verdicts)
 
-- Hard filters (score 0 immediately): minus keywords; a title naming another stack or domain (`title_minus_keywords`: ASIC, embedded, Golang, performance…); `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); salary given and its upper bound below the minimum (no salary in the post: not filtered); "Junior" in the title or junior seniority; no role keyword in the title (decided in stage 4: without it, a non-QA job with many keywords could reach 70)
-- Points: role match (+30), Senior/Lead seniority (+20), plus keywords (+5 each, max +30), remote/Wrocław (+10), salary range given and its upper bound ≥ the target (+10), middle without a salary range (−20, so keywords alone can't lift it to 70). Remote earns +10 only when the location names Poland/EU/abroad/worldwide or a profile city (`remote_locations`): on DOU, remote from Kyiv often means "from Ukraine"; otherwise the reason says "check location" (decided after stage 6). The contract type (B2B net vs UoP gross) is shown in the reason but not used for filtering yet. Reasons never print the thresholds
+v1 gave +30 for a QA title and +20 for seniority, so almost every vacancy started at 60 and keywords present in every post lifted it over 70: of the first 56 sent, the candidate marked 7 fit and 38 no, and the rules kept out only 6 of the 38. v2 scores what the job is, read from the description; the weights were checked against those verdicts (`python -m job_matcher.calibration`, README → Calibration).
+
+- Hard filters (score 0 immediately): minus keywords; a title naming another stack, area or an SDET role (`title_minus_keywords`); `requires_polish = true` at a level above B1; location outside the list (not remote and not in a profile city); a remote post listing only Ukrainian cities (`local_only_places`; a Djinni post saying just "Ukraine" is kept: two fits were like that); more than `max_years_required` (6) years of experience asked; salary given and its upper bound below the minimum (no salary in the post: not filtered); "Junior" in the title or junior seniority; no role keyword in the title
+- Points: Middle or Senior +20 (alike), Lead −15; hands-on testing: 3+ different phrases +30, 1–2 +15 (explicit phrases only: a bare "manual" is often negative, "reduce manual effort"); an automation title with fewer than 3 such phrases −15 (a title alone is not enough: one fit was "QA Automation" with 50/50 manual work); framework building 2+ mentions −20; mobile, load testing, data or hardware as the focus, 4+ mentions each −25; Java/C#/.NET/Kotlin/Swift in the post −15; the candidate's stack +5 each (max +20); domain +5 each (max +10); remote/Wrocław +10; salary reaching the target +10. The score is clamped to 0–100; threshold 60
+- Remote earns +10 only when the location names Poland/EU/abroad/worldwide or a profile city (`remote_locations`); otherwise the reason says "check location". The contract type (B2B net vs UoP gross) is shown in the reason but not used for filtering yet. Reasons never print the thresholds
+- Rules never name a company or a vacancy: they would fit the 56 and nothing else. What rules can't see (a fit with no hands-on testing in the text) is left for LLM scoring
 - `requires_polish`: the vacancy text language is pl, or the requirements mention "Polish C1 / fluent Polish / język polski"
 - Every score comes with a list of reasons — for transparency and for tests
 
@@ -108,6 +116,7 @@ Status buttons (v2): **Applied** and **Skipped** under each message. The bot has
 ## 9. Testing (part of the portfolio)
 
 - Unit: normalization, matching (table-driven cases via `pytest.mark.parametrize`), language detection and `requires_polish`
+- Calibration: the real profile against the candidate's verdicts on 56 vacancies (fit passed, no rejected); the dataset is local only (`data/labelled/`, git-ignored), so in CI this test is skipped and the loader is tested on an invented set
 - Parsers: tests on saved fixtures (HTML/JSON responses), no network
 - Contract tests: check that the source response still contains the required fields (run daily in `contract.yml`, separately from CI)
 - Integration: Telegram and Sheets via mocks

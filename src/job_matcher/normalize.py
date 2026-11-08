@@ -88,3 +88,30 @@ _POLISH_REQUIRED = re.compile(
 
 def requires_polish(text: str, language: Language | None) -> bool:
     return language is Language.PL or bool(_POLISH_REQUIRED.search(text))
+
+
+# "5+ years", "6-7+ years", "3+ роки", "от 7 лет", "7+ lat". Counted only next to a word
+# about experience: "10 years on the market" is about the company, not the candidate.
+_YEARS = re.compile(
+    r"(?<!\d)(\d{1,2})\s*\+?\s*(?:[-\N{EN DASH}]\s*(\d{1,2})\s*\+?\s*)?"
+    r"(?:years?|yrs|рок(?:и|ів)?|рік|лет|года?|lat)(?!\w)",
+    re.IGNORECASE,
+)
+_EXPERIENCE = re.compile(
+    r"experience|background|requirement|in (?:QA|testing|software testing)"
+    r"|досвід|опыт|[в\N{CYRILLIC SMALL LETTER U}] QA|doświadcz",
+    re.IGNORECASE,
+)
+_EXPERIENCE_WINDOW = 80  # characters around the number
+MAX_PLAUSIBLE_YEARS = 15
+
+
+def required_years(text: str) -> int | None:
+    """The highest number of years of experience the post asks for, if any."""
+    found = []
+    for match in _YEARS.finditer(text):
+        around = text[max(0, match.start() - _EXPERIENCE_WINDOW) : match.end() + _EXPERIENCE_WINDOW]
+        years = int(match[2] or match[1])  # a range counts by its upper bound
+        if _EXPERIENCE.search(around) and years <= MAX_PLAUSIBLE_YEARS:
+            found.append(years)
+    return max(found, default=None)

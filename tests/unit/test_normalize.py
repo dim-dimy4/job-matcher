@@ -7,6 +7,7 @@ from job_matcher.normalize import (
     detect_language,
     detect_seniority,
     html_to_text,
+    required_years,
     requires_polish,
 )
 
@@ -107,3 +108,26 @@ def test_requires_polish(text, language, expected):
 )
 def test_clean_company(name, expected):
     assert clean_company(name) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("5+ years of experience in QA", 5),
+        ("Requirements: 7+ years in QA and test automation", 7),
+        ("6-7+ years of hands-on experience", 7),  # a range counts by its upper bound
+        ("5\N{EN DASH}7 years of experience", 7),
+        ("Досвід роботи від 3 років", 3),
+        ("Опыт от 7 лет", 7),
+        ("Doświadczenie: 4 lat", 4),
+        ("2+ years of experience with Python; 4+ years of experience in QA", 4),
+        ("We have been on the market for 20 years", None),  # not about the candidate
+        ("A 10-year-old product, experience with APIs", None),
+        ("Experience: 30 years", None),  # implausible
+        ("", None),
+    ],
+    ids=["plus", "requirements", "range", "en-dash-range", "uk", "ru", "pl", "highest-wins",
+         "company-age", "not-years-of", "implausible", "empty"],
+)  # fmt: skip
+def test_required_years(text, expected):
+    assert required_years(text) == expected

@@ -1,12 +1,14 @@
 # Candidate profile: the matcher's input (SPEC §2). Data only; scoring rules live in matcher.py.
 # Keywords are matched case-insensitively as whole words ("API" also matches "APIs").
+#
+# The candidate: web and API testing, a hybrid of manual testing and automation in Python,
+# test design, releases. The lists below were checked against their verdicts on 56
+# vacancies: python -m job_matcher.calibration
 
 # A title must contain one of these, otherwise the vacancy is not a QA role (score 0).
 role_keywords:
   - QA
   - AQA
-  - SDET
-  - engineer in test
   - quality assurance
   - quality engineer
   - test automation
@@ -15,14 +17,42 @@ role_keywords:
   - test lead
   - tester
 
+# In the title: another stack, area or kind of role is the job (score 0).
+title_minus_keywords:
+  # framework-writing roles rather than product testing
+  - SDET
+  - Software Development Engineer
+  # another main language
+  - Java
+  - C#
+  - .NET
+  - Golang
+  - Kotlin
+  - Swift
+  - JavaScript
+  - TypeScript
+  - TS/JS
+  # another area
+  - Mobile
+  - Appium
+  - Data
+  - Network
+  - Networking
+  - ASIC
+  - FPGA
+  - embedded
+  - hardware
+  - firmware
+  - performance
+  - load testing
+
 # On-site / hybrid is fine only in these cities; remote is fine anywhere the post allows.
 cities:
   - Wrocław
   - Wroclaw
   - Вроцлав
 
-# A remote post earns +10 only if its location names one of these (or a city above):
-# on DOU "віддалено" from Kyiv/Lviv often means "from Ukraine". Otherwise: "check location".
+# A remote post earns +10 only if its location names one of these (or a city above).
 remote_locations:
   - Poland
   - Польща
@@ -33,31 +63,148 @@ remote_locations:
   - за кордоном
   - Worldwide
 
-# +5 each, at most +30. Distinctive skills only: generic tools (Jira, Git) match every post.
-plus_keywords:
-  # automation
-  - Playwright
+# A remote post whose locations are all among these is open to people living in Ukraine
+# only (DOU lists the offices: "Київ, Львів"). A Djinni post saying just "Ukraine" is not
+# rejected: two of the candidate's fits were like that.
+local_only_places:
+  - Київ
+  - Львів
+  - Одеса
+  - Харків
+  - Дніпро
+  - Запоріжжя
+  - Вінниця
+  - Івано-Франківськ
+  - Рівне
+  - Тернопіль
+  - Ужгород
+  - Хмельницький
+  - Чернівці
+  - Черкаси
+  - Житомир
+  - Полтава
+  - Луцьк
+  - Суми
+  - Чернігів
+  - Миколаїв
+  - Кропивницький
+  - Kyiv
+  - Lviv
+  - Kharkiv
+  - Dnipro
+  - Odesa
+
+# The candidate's tools: +5 each, at most +20. Generic ones (Jira, Git) match every post.
+stack_keywords:
   - Python
   - Pytest
+  - Playwright
   - Selenium
-  - GitHub Actions
-  # API and data
-  - API
   - Postman
-  - Newman
+  - REST
+  - API
   - SQL
-  # AI / LLM testing
-  - LLM
-  - AI
-  - GenAI
-  - prompt injection
-  # domain
-  - Stripe
-  - payments
+  - DevTools
+
+# Products the candidate likes: +5 each, at most +10.
+domain_keywords:
   - SaaS
-  - startup
-  - e-commerce
+  - AI
+  - LLM
+  - GenAI
+  - payments
+  - fintech
   - marketplace
+  - e-commerce
+  - EdTech
+
+# Hands-on product testing, as explicit phrases: a bare "manual" is often negative ("reduce
+# manual effort"). Counted once each: 3+ different phrases: +30 (a hybrid role); 1-2: +15.
+manual_keywords:
+  - manual testing
+  - manual test
+  - manual QA
+  - QA manual
+  - manual and automated
+  - manual and semi-automated
+  - manual & automation
+  - manually test
+  - manually testing
+  - exploratory
+  - test case
+  - test plan
+  - test documentation
+  - checklist
+  - ручне тестування
+  - ручного тестування
+  - ручное тестирование
+  - ручного тестирования
+  - мануальне тестування
+  - тест-кейс
+  - тест кейс
+  - чек-лист
+
+# In the title: an automation role. With fewer than 3 hands-on phrases: -15. A title alone
+# is not enough: one fit was "QA Automation" with 50/50 manual work inside.
+automation_title_keywords:
+  - AQA
+  - automation
+
+# Building test frameworks: 2+ mentions: -20.
+framework_keywords:
+  - from scratch
+  - test framework
+  - framework design
+  - framework architecture
+  - test infrastructure
+  - SDET
+
+# Another main language mentioned in the description: -15. JavaScript/TypeScript are not
+# here: hybrid web roles mention them as a nice-to-have.
+foreign_languages:
+  - Java
+  - C#
+  - .NET
+  - Kotlin
+  - Swift
+
+# Not wanted as the main job: 4+ mentions of an area: -25 each.
+focus_areas:
+  mobile:
+    - mobile
+    - iOS
+    - Android
+    - Appium
+    - XCUITest
+    - Espresso
+  load testing:
+    - JMeter
+    - Gatling
+    - k6
+    - Locust
+    - load testing
+    - performance testing
+    - stress testing
+  data:
+    - ETL
+    - ELT
+    - Spark
+    - Databricks
+    - Airflow
+    - data pipeline
+    - Big Data
+    - dbt
+    - Snowflake
+    - data warehouse
+  hardware and networks:
+    - network
+    - networking
+    - ASIC
+    - FPGA
+    - embedded
+    - firmware
+    - hardware
+    - Linux kernel
 
 # Any of these anywhere in the post: score 0.
 minus_keywords:
@@ -69,17 +216,8 @@ minus_keywords:
   - German-speaking
   - fluent German
 
-# In the title only: another stack or domain is the main job. Kept out of minus_keywords,
-# where "hardware" or "performance" in a description would reject good posts.
-title_minus_keywords:
-  - ASIC
-  - FPGA
-  - embedded
-  - hardware
-  - firmware
-  - Golang
-  - performance
-  - load testing
+# A post asking for more years of experience than this: score 0.
+max_years_required: 6
 
 # Monthly salary thresholds in one base currency; USD/EUR are converted by the rates.
 # Compared with the top of the range. No salary in the post: not filtered, no bonus.
@@ -92,6 +230,7 @@ salary:
   rates: # approximate, 1 unit in PLN
     USD: 3.7
     EUR: 4.25
+    GBP: 4.9
 
 # Vacancies scoring at least this go to Telegram.
-notify_threshold: 70
+notify_threshold: 60

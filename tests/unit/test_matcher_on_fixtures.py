@@ -1,7 +1,8 @@
 """The real profile on real saved vacancies: a sanity check that the rules pick sensible jobs.
 
-Assertions are deliberately loose (above / below the threshold), so tuning the profile
-doesn't require rewriting them; exact rule behaviour is covered in test_matcher.py.
+Which vacancies should pass is checked against the candidate's verdicts in
+test_calibration.py; here, that the noise is rejected for the right reason. Exact rule
+behaviour is covered in test_matcher.py.
 """
 
 import json
@@ -34,20 +35,6 @@ def _get(scored, company, title):
 
 
 @pytest.mark.parametrize(
-    ("company", "title"),
-    [
-        ("Codest", "Senior QA Automation Engineer"),
-        ("Glorium", "Middle/Senior AQA"),
-        ("FinteqHub", "QA Tech Lead"),
-    ],
-)
-def test_good_matches_reach_the_threshold(scored, company, title):
-    _, profile = scored
-
-    assert _get(scored, company, title).score >= profile.notify_threshold
-
-
-@pytest.mark.parametrize(
     ("company", "title", "reason"),
     [
         ("micro1", "Family Medicine Hospitalist", "not a QA role"),
@@ -56,7 +43,7 @@ def test_good_matches_reach_the_threshold(scored, company, title):
         ("Spotter Labs", "Quality Assurance Engineer -- Junior Product Manager | AI / Trucking",
          "junior"),
         ("Synergetica", "Head of QA (in Warsaw)", "location"),
-        ("NVIDIA", "Senior QA Automation Engineer, ASIC Simulation", "stack: ASIC"),
+        ("NVIDIA", "Senior QA Automation Engineer, ASIC Simulation", "title says ASIC"),
     ],
 )  # fmt: skip
 def test_noise_is_rejected(scored, company, title, reason):

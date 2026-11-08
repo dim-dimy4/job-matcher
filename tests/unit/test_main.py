@@ -16,14 +16,14 @@ def profile():
     return Profile(
         role_keywords=["QA"],
         remote_locations=["Poland"],
-        plus_keywords=["Playwright", "Python"],
-        notify_threshold=65,
+        stack_keywords=["Playwright", "Python"],
+        notify_threshold=35,
     )
 
 
 @pytest.fixture
 def job(make_vacancy):
-    """A remote senior QA job: 60 points, plus 5 per keyword in `skills`."""
+    """A remote senior QA job: 30 points, plus 5 per keyword in `skills`."""
 
     def _make(n, skills="", **overrides):
         data = {
@@ -98,9 +98,9 @@ def test_select_new_keeps_matches_best_first(profile, job):
     selected = pipeline.select_new(vacancies, profile, KnownVacancies())
 
     assert [(v.title, v.score) for v in selected] == [
-        ("Senior QA Engineer 4", 70),
-        ("Senior QA Engineer 2", 65),
-    ], "60 is below the threshold, the junior job is rejected"
+        ("Senior QA Engineer 4", 40),
+        ("Senior QA Engineer 2", 35),
+    ], "30 is below the threshold, the junior job is rejected"
 
 
 def test_select_new_skips_known_and_cross_board_duplicates(profile, job):
@@ -114,7 +114,7 @@ def test_select_new_skips_known_and_cross_board_duplicates(profile, job):
 
     selected = pipeline.select_new(vacancies, profile, known)
 
-    assert [(str(v.url), v.score) for v in selected] == [("https://jobs.dou.ua/vacancies/2/", 70)]
+    assert [(str(v.url), v.score) for v in selected] == [("https://jobs.dou.ua/vacancies/2/", 40)]
 
 
 def test_run_writes_the_sheet_before_telegram(profile, job, events, tracker, notifier, no_sleep):
@@ -283,8 +283,8 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     assert pipeline.main(["--dry-run"]) == 0
 
     out = capsys.readouterr().out
-    assert " 65  Senior QA Engineer 1 @ Acme  | Poland · remote" in out
-    assert "1 of 2 vacancies reach 65" in out
+    assert " 35  Senior QA Engineer 1 @ Acme  | Poland · remote" in out
+    assert "1 of 2 vacancies reach 35" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 
 
