@@ -1,0 +1,13 @@
+{
+ "job": {
+  "@type": "JobPosting",
+  "title": "Senior QA Automation Engineer",
+  "hiringOrganization": {"@type": "Organization", "name": "Beta"},
+  "jobLocationType": "TELECOMMUTE",
+  "applicantLocationRequirements": {"address": {"addressRegion": "Europe"}},
+  "experienceRequirements": {"monthsOfExperience": 60},
+  "description": "Build a test framework from scratch in Java and own the test infrastructure."
+ },
+ "title": "Senior QA Automation Engineer",
+ "published_at": "2026-11-01T09:00:00+00:00"
+}

@@ -23,8 +23,7 @@ class TelegramError(RuntimeError):
 def format_message(v: Vacancy) -> str:
     """HTML message; every value from a job board is escaped, so a "<" in a title can't
     break the markup (Telegram rejects the whole message on invalid HTML)."""
-    # The role reason is true for every notified vacancy, so it carries no information.
-    reasons = [r for r in v.match_reasons if " role: " not in r][:MAX_REASONS]
+    reasons = v.match_reasons[:MAX_REASONS]
     lines = [
         f"<b>{html.escape(v.title)}</b>",
         html.escape(v.company),

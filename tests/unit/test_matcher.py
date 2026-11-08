@@ -13,12 +13,20 @@ from job_matcher.profile import Profile, SalaryRules
 @pytest.fixture
 def profile() -> Profile:
     return Profile(
-        role_keywords=["QA", "SDET", "test automation"],
+        role_keywords=["QA", "test automation"],
         cities=["Wrocław"],
         remote_locations=["Poland", "за кордоном"],
-        plus_keywords=["Playwright", "Python", "Pytest", "API", "Postman", "LLM", "AI"],
+        local_only_places=["Київ", "Львів"],
+        stack_keywords=["Playwright", "Python", "Pytest", "API", "Postman"],
+        domain_keywords=["SaaS", "AI", "LLM"],
+        manual_keywords=["manual testing", "exploratory", "test case"],
+        automation_title_keywords=["AQA", "automation"],
+        framework_keywords=["from scratch", "test framework"],
+        foreign_languages=["Java", "C#"],
+        focus_areas={"mobile": ["mobile", "iOS", "Android"]},
         minus_keywords=["casino", "betting"],
-        title_minus_keywords=["ASIC", "Golang"],
+        title_minus_keywords=["ASIC", "Golang", "SDET"],
+        max_years_required=6,
         # Round numbers keep the expected values readable: 1 USD = 4 PLN.
         salary=SalaryRules(currency="PLN", minimum=10000, target=15000, rates={"USD": 4.0}),
     )
@@ -26,25 +34,29 @@ def profile() -> Profile:
 
 @pytest.fixture
 def vacancy(make_vacancy):
-    """A remote-from-Poland Senior QA vacancy with no keywords: role + seniority + remote = 60."""
+    """A remote-from-Poland Senior QA vacancy with an empty post: seniority + remote = 30."""
 
     def _make(**overrides):
-        data = {"remote": "yes", "location": "Poland", "seniority": "senior"}
+        data = {"title": "Senior QA Engineer", "remote": "yes", "location": "Poland",
+                "seniority": "senior"}  # fmt: skip
         return make_vacancy(**{**data, **overrides})
 
     return _make
 
 
+HYBRID = "manual testing, exploratory sessions and test cases"
+
+
 def test_baseline_score_and_reasons(profile, vacancy):
     match = score(vacancy(), profile)
 
-    assert match.score == 60
-    assert match.reasons == ["+30 role: QA", "+20 seniority: senior", "+10 remote: Poland"]
+    assert match.score == 30
+    assert match.reasons == ["+20 seniority: senior", "+10 remote: Poland"]
 
 
 def test_perfect_vacancy_scores_100(profile, vacancy):
     v = vacancy(
-        description="Playwright, Python, Pytest, REST API, Postman, LLM and AI testing",
+        description=f"{HYBRID}. Python, Pytest, Playwright, REST API. SaaS with AI features.",
         salary_min=20000,
         salary_max=26000,
         currency="PLN",
@@ -60,40 +72,104 @@ def test_perfect_vacancy_scores_100(profile, vacancy):
         ("python, PYTEST", 10, ["Python", "Pytest"]),
         ("testing REST APIs", 5, ["API"]),
         ("rapid releases, maintain the suite", 0, []),  # 'api' / 'ai' inside other words
-        ("Playwright Python Pytest API Postman LLM AI", 30, None),  # 7 x 5 capped at 30
+        ("Playwright Python Pytest API Postman", 20, None),  # 5 x 5 capped at 20
     ],
     ids=["two", "case-insensitive", "plural", "not-a-substring", "capped"],
 )
-def test_plus_keywords(profile, vacancy, description, points, found):
+def test_stack_keywords(profile, vacancy, description, points, found):
     match = score(vacancy(description=description), profile)
 
-    assert match.score == 60 + points
+    assert match.score == 30 + points
     if found is not None:
         assert match.keywords == found
 
 
+def test_domain_keywords_are_capped(profile, vacancy):
+    match = score(vacancy(description="A SaaS for LLM and AI teams"), profile)
+
+    assert match.score == 40
+    assert "+10 domain: SaaS, AI, LLM" in match.reasons
+
+
 @pytest.mark.parametrize(
-    ("seniority", "expected"),
-    [("senior", 60), ("lead", 60), ("middle", 20), (None, 40)],
+    ("seniority", "expected", "reason"),
+    [
+        ("senior", 50, "+20 seniority: senior"),
+        ("middle", 50, "+20 seniority: middle"),
+        ("lead", 15, "-15 lead role"),
+        (None, 30, None),
+    ],
 )
-def test_seniority_points(profile, vacancy, seniority, expected):
-    assert score(vacancy(seniority=seniority), profile).score == expected
+def test_middle_and_senior_score_alike_and_a_lead_loses(profile, vacancy, seniority, expected,
+                                                        reason):  # fmt: skip
+    match = score(vacancy(seniority=seniority, description="Python Pytest Playwright API"), profile)
+
+    assert match.score == expected
+    if reason:
+        assert reason in match.reasons
 
 
-def test_middle_without_salary_cannot_reach_the_threshold(profile, vacancy):
-    v = vacancy(seniority="middle", description="Playwright Python Pytest API Postman LLM AI")
+@pytest.mark.parametrize(
+    ("description", "points", "reason"),
+    [
+        (HYBRID, 30, "+30 hands-on testing: manual testing, exploratory, test case"),
+        ("some manual testing", 15, "+15 some hands-on testing: manual testing"),
+        ("test cases, test cases, test cases", 15, "+15 some hands-on testing: test case"),
+        ("reduce manual effort with automation", 0, None),
+    ],
+    ids=["hybrid", "a-little", "repeats-count-once", "bare-manual-is-not-a-signal"],
+)
+def test_hands_on_testing(profile, vacancy, description, points, reason):
+    match = score(vacancy(description=description), profile)
+
+    assert match.score == 30 + points
+    if reason:
+        assert reason in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("description", "points"),
+    [("", -15), ("some manual testing", 0), (HYBRID, 30)],
+    ids=["pure-automation", "a-little-manual", "hybrid-inside"],
+)
+def test_an_automation_title_needs_hands_on_work(profile, vacancy, description, points):
+    match = score(vacancy(title="Senior QA Automation Engineer", description=description), profile)
+
+    assert match.score == 30 + points
+    penalized = "-15 automation role: automation in the title" in match.reasons
+    assert penalized == (description != HYBRID), "only 3+ hands-on phrases lift the penalty"
+
+
+@pytest.mark.parametrize(
+    ("description", "points", "reason"),
+    [
+        ("Build a test framework from scratch", -20, "-20 framework building: 2 mentions"),
+        ("Maintain the test framework", 0, None),
+        ("mobile apps on iOS and Android, mobile-first", -25, "-25 focus on mobile: 4 mentions"),
+        ("iOS and Android builds, mobile", 0, None),
+        ("Java or C# experience", -15, "-15 another stack: Java, C#"),
+        ("JavaScript is a plus", 0, None),
+    ],
+    ids=["framework", "one-framework-mention", "focus-area", "three-mentions-is-not-focus",
+         "foreign-language", "javascript-is-not-java"],
+)  # fmt: skip
+def test_what_the_job_is_about(profile, vacancy, description, points, reason):
+    match = score(vacancy(description=description), profile)
+
+    assert match.score == 30 + points
+    if reason:
+        assert reason in match.reasons
+
+
+def test_score_does_not_go_below_zero(profile, vacancy):
+    v = vacancy(
+        seniority="lead", location=None, description="Java, C#, from scratch, test framework"
+    )
 
     match = score(v, profile)
 
-    assert match.score == 50  # 30 role + 30 keywords + 10 remote - 20
-    assert "-20 middle without a salary range" in match.reasons
-
-
-def test_middle_with_a_salary_range_is_not_penalized(profile, vacancy):
-    match = score(vacancy(seniority="middle", salary_max=16000, currency="PLN"), profile)
-
-    assert match.score == 50  # 30 role + 10 remote + 10 salary
-    assert not any("middle" in r for r in match.reasons)
+    assert match.score == 0
+    assert not any(r.startswith("rejected") for r in match.reasons), "penalties, not a filter"
 
 
 @pytest.mark.parametrize(
@@ -104,17 +180,17 @@ def test_middle_with_a_salary_range_is_not_penalized(profile, vacancy):
         ("за кордоном", 10, "+10 remote: за кордоном"),
         ("Київ, Вроцлав", 0, "remote, check location: Київ, Вроцлав"),
         ("Kyiv, Wrocław", 10, "+10 remote: Kyiv, Wrocław"),
-        ("Київ, Львів", 0, "remote, check location: Київ, Львів"),
+        ("Ukraine", 0, "remote, check location: Ukraine"),
         (None, 0, "remote, check location: not given"),
     ],
-    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "ukraine-only",
+    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "country",
          "no-location"],
 )  # fmt: skip
 def test_remote_needs_a_location_the_candidate_can_work_from(profile, vacancy, location, points,
                                                              reason):  # fmt: skip
     match = score(vacancy(location=location), profile)
 
-    assert match.score == 50 + points
+    assert match.score == 20 + points
     assert reason in match.reasons
 
 
@@ -149,7 +225,7 @@ def test_remote_needs_a_location_the_candidate_can_work_from(profile, vacancy, l
 def test_salary(profile, vacancy, fields, points, reason):
     match = score(vacancy(**fields), profile)
 
-    assert match.score == 60 + points
+    assert match.score == 30 + points
     salary_reasons = [r for r in match.reasons if "salary" in r]
     assert salary_reasons == ([reason] if reason else [])
 
@@ -167,7 +243,7 @@ def test_salary_reasons_never_reveal_thresholds(profile, vacancy):
 def test_profile_city_counts_like_remote(profile, vacancy, remote):
     match = score(vacancy(remote=remote, location="Wrocław, Kraków"), profile)
 
-    assert match.score == 60
+    assert match.score == 30
     assert "+10 location: Wrocław, Kraków" in match.reasons
 
 
@@ -181,14 +257,16 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         ({"title": "Junior/Middle QA Engineer", "seniority": None}, "rejected: junior"),
         ({"title": "Senior Python Developer"}, "rejected: not a QA role"),
         ({"title": "Senior Software Engineer in Test"}, "rejected: not a QA role"),
-        ({"title": "Senior QA Automation Engineer, ASIC Simulation"},
-         "rejected: not the candidate's stack: ASIC"),
-        ({"title": "QA Engineer - Backend (Golang) Senior"},
-         "rejected: not the candidate's stack: Golang"),
+        ({"title": "Senior QA Automation Engineer, ASIC Simulation"}, "rejected: title says ASIC"),
+        ({"title": "QA Engineer - Backend (Golang) Senior"}, "rejected: title says Golang"),
+        ({"title": "Senior SDET (QA)"}, "rejected: title says SDET"),
         ({"remote": None, "location": "Warszawa"},
          "rejected: location Warszawa is not remote or Wrocław"),
         ({"remote": "hybrid", "location": None},
          "rejected: location unknown is not remote or Wrocław"),
+        ({"location": "Київ, Львів"}, "rejected: remote from Київ, Львів only"),
+        ({"description": "Python. 7+ years of experience in QA"},
+         "rejected: asks for 7+ years of experience"),
         ({"salary_max": 8000, "currency": "PLN"},
          "rejected: salary up to 8000 PLN is below the minimum"),
         ({"salary_min": 2000, "salary_max": 2400, "currency": "USD"},
@@ -204,8 +282,11 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         "role-not-in-test-profile",
         "foreign-domain-in-title",
         "foreign-language-in-title",
+        "framework-role-in-title",
         "on-site-elsewhere",
         "location-unknown",
+        "remote-from-ukraine-only",
+        "too-many-years",
         "salary-below-minimum",
         "converted-salary-below-minimum",
     ],
@@ -215,6 +296,20 @@ def test_hard_filters_give_zero(profile, vacancy, fields, reason):
 
     assert match.score == 0
     assert match.reasons == [reason]
+
+
+@pytest.mark.parametrize(
+    ("max_years", "description", "rejected"),
+    [(6, "6+ years of experience", False), (None, "10+ years of experience", False),
+     (6, "a company with 20 years on the market", False)],
+    ids=["at-the-limit", "no-limit-set", "not-about-the-candidate"],
+)  # fmt: skip
+def test_years_filter_edges(profile, vacancy, max_years, description, rejected):
+    custom = profile.model_copy(update={"max_years_required": max_years})
+
+    match = score(vacancy(description=description), custom)
+
+    assert (match.score == 0) == rejected
 
 
 def test_all_rejection_reasons_are_reported(profile, vacancy):
@@ -239,6 +334,6 @@ def test_apply_fills_score_reasons_and_skills_on_a_copy(profile, vacancy):
 
     scored = apply(original, profile)
 
-    assert (scored.score, scored.skills) == (65, ["Python"])
+    assert (scored.score, scored.skills) == (35, ["Python"])
     assert scored.match_reasons == score(original, profile).reasons
     assert original.score is None, "the input vacancy must not be modified"

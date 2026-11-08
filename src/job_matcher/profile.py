@@ -52,9 +52,20 @@ class Profile(BaseModel):
     cities: list[str] = Field(default_factory=list)
     # A remote post must name one of these (or a city) to earn the location points.
     remote_locations: list[str] = Field(default_factory=list)
-    plus_keywords: list[str] = Field(default_factory=list)
+    # A remote post listing only these places is open to people living there only.
+    local_only_places: list[str] = Field(default_factory=list)
+    stack_keywords: list[str] = Field(default_factory=list)  # the candidate's tools
+    domain_keywords: list[str] = Field(default_factory=list)  # products they like
+    manual_keywords: list[str] = Field(default_factory=list)  # hands-on product testing
+    automation_title_keywords: list[str] = Field(default_factory=list)
+    framework_keywords: list[str] = Field(default_factory=list)  # building test frameworks
+    foreign_languages: list[str] = Field(default_factory=list)  # in the description
+    # Areas the candidate doesn't want as the main job: name -> keywords. A post that keeps
+    # coming back to one of them (several mentions) is about that area.
+    focus_areas: dict[str, list[str]] = Field(default_factory=dict)
     minus_keywords: list[str] = Field(default_factory=list)  # anywhere in the post
     title_minus_keywords: list[str] = Field(default_factory=list)  # in the title only
+    max_years_required: int | None = Field(default=None, ge=0)  # asking more: rejected
     salary: SalaryRules = Field(default_factory=SalaryRules)
     notify_threshold: int = Field(default=70, ge=0, le=100)
 

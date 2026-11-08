@@ -1,0 +1,5 @@
+id,source,company,title,verdict,category,url
+a1,dou,Acme,Senior QA Engineer,fit,,https://jobs.dou.ua/companies/acme/vacancies/1/
+b2,djinni,Beta,Senior QA Automation Engineer,no,pure_automation,https://djinni.co/jobs/2-senior-qa-automation-engineer/
+c3,himalayas,Gamma,Middle QA Engineer,maybe,,https://himalayas.app/companies/gamma/jobs/middle-qa-engineer
+d4,dou,Delta,QA Engineer,excluded,removed,https://jobs.dou.ua/companies/delta/vacancies/4/

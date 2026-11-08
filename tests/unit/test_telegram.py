@@ -26,11 +26,10 @@ def scored(make_vacancy):
             "contract_type": "B2B",
             "score": 85,
             "match_reasons": [
-                "+30 role: QA",
                 "+20 seniority: senior",
-                "+15 keywords: Playwright, Python, API",
-                "+10 remote",
-                "+10 salary up to 23000 PLN, B2B reaches the target",
+                "+30 hands-on testing: manual testing, exploratory, test case",
+                "+15 stack: Playwright, Python, API",
+                "+10 remote: Poland",
             ],
         }
         return make_vacancy(**{**data, **overrides})
@@ -57,8 +56,8 @@ def test_message_layout(scored):
             "18000-23000 PLN, B2B",
             "Score: <b>85</b>",
             "• +20 seniority: senior",
-            "• +15 keywords: Playwright, Python, API",
-            "• +10 remote",
+            "• +30 hands-on testing: manual testing, exploratory, test case",
+            "• +15 stack: Playwright, Python, API",
             '<a href="https://jobs.dou.ua/companies/acme/vacancies/123/">Open the vacancy</a>',
         ]
     )
