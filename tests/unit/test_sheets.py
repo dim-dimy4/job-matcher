@@ -127,6 +127,34 @@ def test_same_job_key_ignores_formatting(first, second):
     assert same_job_key(*first) == same_job_key(*second)
 
 
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("The Codest", "Codest Ltd. Company No. 12590542, VAT number: GB363431020"),
+        ("Codest Sp. z o.o.", "Codest"),
+        ("Acme S.A.", "ACME"),
+        ("Foo Co. Ltd", "Foo"),
+        ("Acme GmbH", "Acme Inc."),
+    ],
+    ids=["the-and-registration", "polish-form", "s-a", "two-forms", "gmbh-inc"],
+)
+def test_one_company_under_different_legal_names(first, second):
+    assert same_job_key(first, "Senior QA") == same_job_key(second, "Senior QA")
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [("Co-Op Bank", "Op Bank"), ("Theta Labs", "Ta Labs"), ("Ascendix Technologies", "Ascendix")],
+    ids=["co-inside-a-name", "the-inside-a-word", "not-a-legal-form"],
+)
+def test_names_that_only_look_alike_stay_apart(first, second):
+    assert same_job_key(first, "QA") != same_job_key(second, "QA")
+
+
+def test_a_name_that_is_only_a_legal_form_is_kept():
+    assert same_job_key("The", "QA") == "the|qa"
+
+
 def test_same_job_key_keeps_company_and_title_apart():
     assert same_job_key("QA", "Lead Engineer") != same_job_key("QA Lead", "Engineer")
 
