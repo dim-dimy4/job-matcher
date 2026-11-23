@@ -17,6 +17,8 @@ from job_matcher.matcher import rejection_rule
         ("rejected: salary up to 8000 PLN is below the minimum", "salary below the minimum"),
         ("rejected: location Warszawa is not remote or Wrocław",
          "on-site outside the profile cities"),
+        ("rejected: freelance", "freelance or a short project"),
+        ("rejected: a project of 6 months", "freelance or a short project"),
         ("rejected: something new", "something new"),  # an unknown filter keeps its text
         ("+20 seniority: senior", None),
     ],

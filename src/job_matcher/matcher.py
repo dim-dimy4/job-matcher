@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from functools import cache
 
 from job_matcher.models import RemoteType, Seniority, Vacancy
-from job_matcher.normalize import required_years
+from job_matcher.normalize import engagement_months, is_freelance, required_years, us_hours
 from job_matcher.profile import Profile
 
 SENIORITY_POINTS = 20  # middle and senior alike
@@ -45,6 +45,8 @@ FOCUS_POINTS = -40
 FOCUS_PLACES = 3
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
+US_HOURS_POINTS = -20  # a working day set by a US time zone: evenings in Poland
+SHORT_ENGAGEMENT_MONTHS = 6  # a project this short or shorter is not a job change
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
 
@@ -59,6 +61,8 @@ _RULES = {
     "location": "on-site outside the profile cities",
     "remote from": "remote from Ukraine only",
     "asks for": "too many years of experience",
+    "freelance": "freelance or a short project",
+    "a project of": "freelance or a short project",
     "salary": "salary below the minimum",
 }
 
@@ -124,6 +128,10 @@ def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
         reasons.append(f"{REJECTED}location {v.location or 'unknown'} is not remote or Wrocław")
     elif v.remote is RemoteType.YES and _local_only(v, profile):
         reasons.append(f"{REJECTED}remote from {v.location} only")
+    if is_freelance(text):
+        reasons.append(REJECTED + "freelance")
+    if (months := engagement_months(text)) is not None and months <= SHORT_ENGAGEMENT_MONTHS:
+        reasons.append(f"{REJECTED}a project of {months} months")
     years = required_years(text)
     if profile.max_years_required is not None and (years or 0) > profile.max_years_required:
         reasons.append(f"{REJECTED}asks for {years}+ years of experience")
@@ -226,6 +234,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
     elif (years := required_years(text)) is not None and years >= MIDDLE_YEARS:
         rules.append((SENIORITY_POINTS, f"seniority: {years}+ years asked"))
     rules += _work_points(v, text, profile)
+    if hours := us_hours(text):
+        rules.append((US_HOURS_POINTS, f"US working hours: {hours}"))
     if stack:
         points = _capped(STACK_POINTS, stack, MAX_STACK_POINTS)
         rules.append((points, f"stack: {', '.join(stack)}"))

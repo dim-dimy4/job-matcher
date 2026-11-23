@@ -326,6 +326,9 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         ({"location": "Київ, Львів"}, "rejected: remote from Київ, Львів only"),
         ({"description": "Python. 7+ years of experience in QA"},
          "rejected: asks for 7+ years of experience"),
+        ({"title": "Freelance QA Engineer"}, "rejected: freelance"),
+        ({"description": "Python. A short-term project for 3-6 months."},
+         "rejected: a project of 6 months"),
         ({"salary_max": 8000, "currency": "PLN"},
          "rejected: salary up to 8000 PLN is below the minimum"),
         ({"salary_min": 2000, "salary_max": 2400, "currency": "USD"},
@@ -346,6 +349,8 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         "location-unknown",
         "remote-from-ukraine-only",
         "too-many-years",
+        "freelance",
+        "short-project",
         "salary-below-minimum",
         "converted-salary-below-minimum",
     ],
@@ -409,3 +414,14 @@ def test_a_remote_job_for_one_local_country_only(profile, vacancy, location, rej
     match = score(vacancy(location=location), with_country)
 
     assert (f"rejected: remote from {location} only" in match.reasons) is rejected
+
+
+def test_a_project_longer_than_six_months_is_a_job(profile, vacancy):
+    assert score(vacancy(description="A contract for 12 months, Python."), profile).score > 0
+
+
+def test_us_working_hours_cost_points(profile, vacancy):
+    match = score(vacancy(description="Work 9 AM to 5 PM EST."), profile)
+
+    assert match.score == 10
+    assert "-20 US working hours: EST" in match.reasons
