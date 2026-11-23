@@ -32,7 +32,7 @@ STACK_POINTS = 5
 MAX_STACK_POINTS = 20
 DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
-FOREIGN_LANGUAGE_POINTS = -15
+FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
 FOCUS_POINTS = -25
 FOCUS_MENTIONS = 4
 LOCATION_POINTS = 10
@@ -162,8 +162,10 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
         mentions = _mentions(words, text)
         if mentions >= FOCUS_MENTIONS:
             rules.append((FOCUS_POINTS, f"focus on {area}: {mentions} mentions"))
-    if languages := _found(profile.foreign_languages, text):
-        rules.append((FOREIGN_LANGUAGE_POINTS, f"another stack: {', '.join(languages)}"))
+    in_title = _found(profile.title_penalty_keywords, v.title)
+    in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]
+    if foreign := in_title + in_text:
+        rules.append((FOREIGN_STACK_POINTS, f"another stack: {', '.join(foreign)}"))
     return rules
 
 

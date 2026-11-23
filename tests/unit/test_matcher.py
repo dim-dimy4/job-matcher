@@ -23,6 +23,7 @@ def profile() -> Profile:
         automation_title_keywords=["AQA", "automation"],
         framework_keywords=["from scratch", "test framework"],
         foreign_languages=["Java", "C#"],
+        title_penalty_keywords=["Java", "Mobile"],
         focus_areas={"mobile": ["mobile", "iOS", "Android"]},
         minus_keywords=["casino", "betting"],
         title_minus_keywords=["ASIC", "Golang", "SDET"],
@@ -159,6 +160,23 @@ def test_what_the_job_is_about(profile, vacancy, description, points, reason):
     assert match.score == 30 + points
     if reason:
         assert reason in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("title", "description", "reason"),
+    [
+        ("General QA Engineer (Java)", "", "-15 another stack: Java"),
+        ("General QA Engineer (Java)", "Java and C# services", "-15 another stack: Java, C#"),
+        ("Senior Mobile QA Engineer", "", "-15 another stack: Mobile"),
+    ],
+    ids=["language-in-title", "title-and-text-count-once", "area-in-title"],
+)
+def test_another_stack_in_the_title_is_a_penalty_not_a_filter(profile, vacancy, title,
+                                                              description, reason):  # fmt: skip
+    match = score(vacancy(title=title, description=description), profile)
+
+    assert match.score == 15
+    assert reason in match.reasons
 
 
 def test_score_does_not_go_below_zero(profile, vacancy):

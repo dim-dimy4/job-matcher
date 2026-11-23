@@ -17,24 +17,15 @@ role_keywords:
   - test lead
   - tester
 
-# In the title: another stack, area or kind of role is the job (score 0).
+# In the title: another area or kind of role is the job (score 0).
 title_minus_keywords:
   # framework-writing roles rather than product testing
   - SDET
   - Software Development Engineer
-  # another main language
-  - Java
-  - C#
-  - .NET
+  # a language and an area the candidate doesn't take at all
   - Golang
-  - Kotlin
-  - Swift
-  - JavaScript
-  - TypeScript
-  - TS/JS
-  # another area
-  - Mobile
   - Appium
+  # another area
   - Data
   - Network
   - Networking
@@ -159,8 +150,21 @@ framework_keywords:
   - test infrastructure
   - SDET
 
-# Another main language mentioned in the description: -15. JavaScript/TypeScript are not
-# here: hybrid web roles mention them as a nice-to-have.
+# Another stack in the title: -15, not a filter. "General QA (Java)" was a fit: the
+# language is often a nice-to-have, not day one. Counted once with foreign_languages.
+title_penalty_keywords:
+  - Java
+  - C#
+  - .NET
+  - Kotlin
+  - Swift
+  - JavaScript
+  - TypeScript
+  - TS/JS
+  - Mobile
+
+# Another main language mentioned in the description: -15 (once, with the title list).
+# JavaScript/TypeScript are not here: hybrid web roles mention them as a nice-to-have.
 foreign_languages:
   - Java
   - C#

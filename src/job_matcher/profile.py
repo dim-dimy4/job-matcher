@@ -60,6 +60,7 @@ class Profile(BaseModel):
     automation_title_keywords: list[str] = Field(default_factory=list)
     framework_keywords: list[str] = Field(default_factory=list)  # building test frameworks
     foreign_languages: list[str] = Field(default_factory=list)  # in the description
+    title_penalty_keywords: list[str] = Field(default_factory=list)  # in the title
     # Areas the candidate doesn't want as the main job: name -> keywords. A post that keeps
     # coming back to one of them (several mentions) is about that area.
     focus_areas: dict[str, list[str]] = Field(default_factory=dict)
