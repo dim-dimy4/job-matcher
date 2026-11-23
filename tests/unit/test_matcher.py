@@ -396,3 +396,16 @@ def test_apply_fills_score_reasons_and_skills_on_a_copy(profile, vacancy):
     assert (scored.score, scored.skills) == (35, ["Python"])
     assert scored.match_reasons == score(original, profile).reasons
     assert original.score is None, "the input vacancy must not be modified"
+
+
+@pytest.mark.parametrize(
+    ("location", "rejected"),
+    [("Ukraine", True), ("Ukraine, Poland", False), ("Europe", False)],
+    ids=["country-only", "with-poland", "region"],
+)
+def test_a_remote_job_for_one_local_country_only(profile, vacancy, location, rejected):
+    with_country = profile.model_copy(update={"local_only_places": ["Ukraine", "Київ"]})
+
+    match = score(vacancy(location=location), with_country)
+
+    assert (f"rejected: remote from {location} only" in match.reasons) is rejected

@@ -59,9 +59,11 @@ remote_locations:
   - Worldwide
 
 # A remote post whose locations are all among these is open to people living in Ukraine
-# only (DOU lists the offices: "Київ, Львів"). A Djinni post saying just "Ukraine" is not
-# rejected: two of the candidate's fits were like that.
+# only: DOU lists the offices ("Київ, Львів"), Djinni names the country ("Ukraine"). A list
+# that also names Poland or Europe ("Ukraine, Poland") is not rejected.
 local_only_places:
+  - Ukraine
+  - Україна
   - Київ
   - Львів
   - Одеса
