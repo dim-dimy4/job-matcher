@@ -18,7 +18,7 @@ from typing import Protocol
 import httpx
 from dotenv import load_dotenv
 
-from job_matcher.collectors import djinni, dou, himalayas
+from job_matcher.collectors import arbeitnow, ats, djinni, dou, himalayas, jobicy
 from job_matcher.collectors.http import make_client
 from job_matcher.funnel import Funnel, write_summary
 from job_matcher.matcher import apply, rejection_rule
@@ -56,7 +56,14 @@ class Notifier(Protocol):
 
 def collect_all(client: httpx.Client) -> list[Vacancy]:
     # Each collector logs and skips its own failures, so one broken board doesn't stop the run.
-    return [*dou.collect(client), *himalayas.collect(client), *djinni.collect(client)]
+    return [
+        *dou.collect(client),
+        *himalayas.collect(client),
+        *djinni.collect(client),
+        *jobicy.collect(client),
+        *arbeitnow.collect(client),
+        *ats.collect(client),
+    ]
 
 
 def select_new(
@@ -80,8 +87,10 @@ def select_new(
             funnel.count_rejected(v)
         elif (v.score or 0) < profile.sheet_threshold:
             funnel.below_threshold += 1
+            funnel.note("below", v)
         elif v in known:
             funnel.already_known += 1
+            funnel.note("known", v)
         else:
             known.add(v)
             new.append(v)
@@ -106,12 +115,15 @@ def run(
     tracker.append(new)
     to_send = [v for v in new if (v.score or 0) >= profile.notify_threshold]
     funnel.written, funnel.sheet_only = len(new), len(new) - len(to_send)
+    for v in new:
+        funnel.note("written", v)
     for i, v in enumerate(to_send[:limit]):
         if i:
             time.sleep(delay)
         try:
             notifier.send(v)
             funnel.sent += 1
+            funnel.note("sent", v)
         except TelegramError as exc:
             funnel.failed += 1
             log.error("Telegram: %s @ %s not sent: %s", v.title, v.company, exc)
@@ -140,7 +152,8 @@ def _print_matches(vacancies: Sequence[Vacancy], profile: Profile) -> None:
         f"{profile.notify_threshold}"
     )
     # The sheet isn't read in a dry run: "already known" stays 0 and nothing is written.
-    print("\n".join(["", *(f"Funnel: {line}" for line in funnel.lines()[:3])]))
+    lines = [*funnel.lines()[:3], *funnel.source_lines()]
+    print("\n".join(["", *(f"Funnel: {line}" for line in lines)]))
 
 
 def main(argv: Sequence[str] | None = None) -> int:

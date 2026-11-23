@@ -7,6 +7,7 @@ from job_matcher.normalize import (
     detect_language,
     detect_seniority,
     html_to_text,
+    looks_like_qa,
     required_years,
     requires_polish,
 )
@@ -134,3 +135,20 @@ def test_clean_company(name, expected):
 )  # fmt: skip
 def test_required_years(text, expected):
     assert required_years(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Senior QA Engineer", True),
+        ("Software Tester", True),
+        ("Test Automation Engineer", True),
+        ("Quality Assurance Specialist", True),
+        ("SDET", True),
+        ("Senior Backend Engineer", False),
+        ("Latest Trends Analyst", False),  # "test" inside a word
+        ("Quality Manager (manufacturing)", False),
+    ],
+)
+def test_looks_like_qa(title, expected):
+    assert looks_like_qa(title) is expected

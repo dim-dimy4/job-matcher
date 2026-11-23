@@ -171,6 +171,10 @@ def test_funnel_sorts_every_vacancy_into_one_stage(profile, job, events, notifie
         1, 1, 1, 1,
     )  # fmt: skip
     assert funnel.rejected_by == {"junior": 1}
+    assert funnel.by_source == {
+        ("dou", "rejected"): 1, ("dou", "below"): 1, ("dou", "known"): 1,
+        ("dou", "written"): 1, ("dou", "sent"): 1,
+    }  # fmt: skip
 
 
 def test_run_writes_the_funnel_to_the_job_summary(profile, job, tracker, notifier, no_sleep,
@@ -198,11 +202,17 @@ def test_collect_all_merges_all_boards(monkeypatch, job):
     monkeypatch.setattr(pipeline.dou, "collect", lambda client: [job(1)])
     monkeypatch.setattr(pipeline.himalayas, "collect", lambda client: [job(2)])
     monkeypatch.setattr(pipeline.djinni, "collect", lambda client: [job(3)])
+    monkeypatch.setattr(pipeline.jobicy, "collect", lambda client: [job(4)])
+    monkeypatch.setattr(pipeline.arbeitnow, "collect", lambda client: [job(5)])
+    monkeypatch.setattr(pipeline.ats, "collect", lambda client: [job(6)])
 
     assert _titles(pipeline.collect_all(client=None)) == [
         "Senior QA Engineer 1",
         "Senior QA Engineer 2",
         "Senior QA Engineer 3",
+        "Senior QA Engineer 4",
+        "Senior QA Engineer 5",
+        "Senior QA Engineer 6",
     ]
 
 
@@ -328,6 +338,7 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     assert " 35 telegram  Senior QA Engineer 1 @ Acme" in out
     assert "Funnel: collected 2 (dou 2)" in out
     assert "Funnel: below the sheet threshold 1, already known 0" in out
+    assert "Funnel: dou: collected 2, rejected 0, below 1, known 0, written 0, sent 0" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 
 

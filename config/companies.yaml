@@ -1,0 +1,28 @@
+# Company job boards read by collectors/ats.py: name, ATS (greenhouse, lever, ashby,
+# recruitee) and the board's slug in that ATS's public API.
+#
+# Picked 2026-11-23 from the companies the candidate marked Yes or 50/50 and IT companies with
+# an office in Wrocław; the ATS was found from the public APIs and the careers pages. Only
+# these were on a supported ATS. The others use Workday, Workable, Teamtailor, Traffit,
+# SuccessFactors, SmartRecruiters (its robots.txt disallows the API), Recruitify, eRecruiter
+# or their own page (SPEC §4.1).
+
+companies:
+  - name: SwingDev
+    ats: lever
+    slug: swingdev
+  - name: Text (LiveChat)
+    ats: lever
+    slug: text
+  - name: The Codest
+    ats: recruitee
+    slug: thecodest
+  - name: Zeely AI
+    ats: ashby
+    slug: zeely
+  - name: Solidgate
+    ats: ashby
+    slug: solidgate
+  - name: Ocado Technology
+    ats: greenhouse
+    slug: ocadogroup

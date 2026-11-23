@@ -15,6 +15,9 @@ from pathlib import Path
 from job_matcher.matcher import rejection_rule
 from job_matcher.models import Vacancy
 
+# Stages counted per source, after "collected"; "written" includes the ones also sent.
+SOURCE_STAGES = ("rejected", "below", "known", "written", "sent")
+
 
 @dataclass
 class Funnel:
@@ -28,6 +31,8 @@ class Funnel:
     sheet_only: int = 0  # of them, below the Telegram threshold
     sent: int = 0
     failed: int = 0
+    # (source, stage) -> vacancies: which board feeds the sheet and which only adds noise.
+    by_source: Counter[tuple[str, str]] = field(default_factory=Counter)
 
     def count_collected(self, vacancies: Iterable[Vacancy]) -> None:
         self.collected.update(v.source for v in vacancies)
@@ -37,6 +42,18 @@ class Funnel:
         self.rejected_by.update(
             rule for r in v.match_reasons if (rule := rejection_rule(r)) is not None
         )
+        self.note("rejected", v)
+
+    def note(self, stage: str, v: Vacancy) -> None:
+        """Count one vacancy at a stage of its source (one of SOURCE_STAGES)."""
+        self.by_source[(v.source, stage)] += 1
+
+    def source_lines(self) -> list[str]:
+        return [
+            f"{source}: collected {n}, "
+            + ", ".join(f"{stage} {self.by_source[(source, stage)]}" for stage in SOURCE_STAGES)
+            for source, n in self.collected.most_common()
+        ]
 
     def lines(self) -> list[str]:
         return [
@@ -45,6 +62,7 @@ class Funnel:
             f"below the sheet threshold {self.below_threshold}, already known {self.already_known}",
             f"written to the sheet {self.written} ({self.sheet_only} below the Telegram "
             f"threshold), sent to Telegram {self.sent}, failed {self.failed}",
+            *self.source_lines(),
         ]
 
     def markdown(self) -> str:
@@ -66,6 +84,17 @@ class Funnel:
             "",
             "A vacancy failing several filters counts under each of them; the bold rejected",
             "row counts vacancies.",
+            "",
+            "### By source",
+            "",
+            "| Source | Collected | " + " | ".join(s.capitalize() for s in SOURCE_STAGES) + " |",
+            "|---|" + "---:|" * (len(SOURCE_STAGES) + 1),
+            *(
+                f"| {source} | {n} | "
+                + " | ".join(str(self.by_source[(source, stage)]) for stage in SOURCE_STAGES)
+                + " |"
+                for source, n in self.collected.most_common()
+            ),
             "",
         ]
         return "\n".join(rows)
