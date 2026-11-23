@@ -21,6 +21,7 @@ from job_matcher.normalize import required_years
 from job_matcher.profile import Profile
 
 SENIORITY_POINTS = 20  # middle and senior alike
+MIDDLE_YEARS = 2  # no grade in the title: asking this many years makes it a middle role
 LEAD_POINTS = -15  # no lead role was a fit: they mean managing people, not testing
 MANUAL_POINTS = 30  # hands-on testing is a large part of the job
 SOME_MANUAL_POINTS = 15
@@ -147,13 +148,17 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     rules = []
     # Different phrases, not repeats: a post repeating "test cases" is not more hands-on.
     manual = _found(profile.manual_keywords, text)
-    if len(manual) >= MANUAL_PHRASES:
+    # A title saying "Manual" or "General QA" is a hybrid role whatever the text repeats:
+    # "QA Automation Engineer (20% Automation / 80% Manual Testing)".
+    manual_title = _found(profile.manual_title_keywords, v.title)
+    hybrid = bool(manual_title) or len(manual) >= MANUAL_PHRASES
+    if manual_title:
+        rules.append((MANUAL_POINTS, f"hands-on testing: {manual_title[0]} in the title"))
+    elif hybrid:
         rules.append((MANUAL_POINTS, f"hands-on testing: {', '.join(manual)}"))
     elif manual:
         rules.append((SOME_MANUAL_POINTS, f"some hands-on testing: {', '.join(manual)}"))
-    if len(manual) < MANUAL_PHRASES and (
-        automation := _found(profile.automation_title_keywords, v.title)
-    ):
+    if not hybrid and (automation := _found(profile.automation_title_keywords, v.title)):
         rules.append((AUTOMATION_TITLE_POINTS, f"automation role: {automation[0]} in the title"))
     framework = _mentions(profile.framework_keywords, text)
     if framework >= FRAMEWORK_MENTIONS:
@@ -181,6 +186,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
         rules.append((SENIORITY_POINTS, f"seniority: {v.seniority}"))
     elif v.seniority is Seniority.LEAD:
         rules.append((LEAD_POINTS, "lead role"))
+    elif (years := required_years(text)) is not None and years >= MIDDLE_YEARS:
+        rules.append((SENIORITY_POINTS, f"seniority: {years}+ years asked"))
     rules += _work_points(v, text, profile)
     if stack:
         points = _capped(STACK_POINTS, stack, MAX_STACK_POINTS)

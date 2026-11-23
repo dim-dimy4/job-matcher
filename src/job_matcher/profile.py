@@ -58,6 +58,7 @@ class Profile(BaseModel):
     domain_keywords: list[str] = Field(default_factory=list)  # products they like
     manual_keywords: list[str] = Field(default_factory=list)  # hands-on product testing
     automation_title_keywords: list[str] = Field(default_factory=list)
+    manual_title_keywords: list[str] = Field(default_factory=list)  # a hybrid role by title
     framework_keywords: list[str] = Field(default_factory=list)  # building test frameworks
     foreign_languages: list[str] = Field(default_factory=list)  # in the description
     title_penalty_keywords: list[str] = Field(default_factory=list)  # in the title

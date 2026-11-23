@@ -21,6 +21,7 @@ def profile() -> Profile:
         domain_keywords=["SaaS", "AI", "LLM"],
         manual_keywords=["manual testing", "exploratory", "test case"],
         automation_title_keywords=["AQA", "automation"],
+        manual_title_keywords=["Manual"],
         framework_keywords=["from scratch", "test framework"],
         foreign_languages=["Java", "C#"],
         title_penalty_keywords=["Java", "Mobile"],
@@ -177,6 +178,41 @@ def test_another_stack_in_the_title_is_a_penalty_not_a_filter(profile, vacancy, 
 
     assert match.score == 15
     assert reason in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("title", "reason"),
+    [
+        ("QA Automation Engineer (20% Automation / 80% Manual Testing)",
+         "+30 hands-on testing: Manual in the title"),
+        ("Middle Manual QA Engineer", "+30 hands-on testing: Manual in the title"),
+    ],
+    ids=["automation-title-says-manual", "manual-title"],
+)  # fmt: skip
+def test_a_manual_title_is_a_hybrid_role(profile, vacancy, title, reason):
+    match = score(vacancy(title=title), profile)
+
+    assert match.score == 60, "+30 and no automation-title penalty"
+    assert reason in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("description", "points", "reason"),
+    [
+        ("2+ years in QA or a technical role", 20, "+20 seniority: 2+ years asked"),
+        ("5+ years of experience", 20, "+20 seniority: 5+ years asked"),
+        ("1+ year of experience", 0, None),
+        ("", 0, None),
+    ],
+    ids=["two-years", "five-years", "one-year", "not-given"],
+)
+def test_no_grade_in_the_title_takes_it_from_the_years_asked(profile, vacancy, description,
+                                                             points, reason):  # fmt: skip
+    match = score(vacancy(seniority=None, description=description), profile)
+
+    assert match.score == 10 + points
+    if reason:
+        assert reason in match.reasons
 
 
 def test_score_does_not_go_below_zero(profile, vacancy):

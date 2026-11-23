@@ -19,9 +19,13 @@ role_keywords:
 
 # In the title: another area or kind of role is the job (score 0).
 title_minus_keywords:
-  # framework-writing roles rather than product testing
+  # framework-writing or system-design roles rather than product testing
   - SDET
   - Software Development Engineer
+  - Architect
+  # the candidate doesn't take side jobs
+  - Part-Time
+  - part time
   # a language and an area the candidate doesn't take at all
   - Golang
   - Appium
@@ -112,6 +116,7 @@ domain_keywords:
 # Hands-on product testing, as explicit phrases: a bare "manual" is often negative ("reduce
 # manual effort"). Counted once each: 3+ different phrases: +30 (a hybrid role); 1-2: +15.
 manual_keywords:
+  - General QA # how DOU names manual + automation roles; one phrase, not a hybrid by itself
   - manual testing
   - manual test
   - manual QA
@@ -134,6 +139,11 @@ manual_keywords:
   - тест-кейс
   - тест кейс
   - чек-лист
+
+# In the title: a hybrid role, whatever the text repeats: +30 like 3+ hands-on phrases, and
+# no automation-title penalty.
+manual_title_keywords:
+  - Manual
 
 # In the title: an automation role. With fewer than 3 hands-on phrases: -15. A title alone
 # is not enough: one fit was "QA Automation" with 50/50 manual work inside.

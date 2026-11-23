@@ -10,15 +10,17 @@ from pathlib import Path
 import pytest
 
 from job_matcher.calibration import LABELLED_DIR, evaluate, load_labelled, report
+from job_matcher.matcher import apply
 from job_matcher.profile import load_profile
 
 INVENTED_DIR = Path(__file__).parents[1] / "fixtures" / "calibration"
 
-# The real set: every fit but one reaches the sheet (one fit is a pure automation role with no
-# hands-on testing in the text, which rules can't tell from the rest), and 90% of the no's
-# stay out of Telegram.
-MIN_FIT_IN_SHEET = 6  # of 7
+# The real set (verdicts from the sheet's Status: Yes and 50/50 are fit, No is no): every fit
+# reaches the sheet; pure automation, Ukraine-only and lead roles never reach Telegram; and
+# 90% of all no's stay out of Telegram. The no's that do reach it are judgement calls rules
+# can't make (how deep a TypeScript or Java requirement goes).
 MIN_NO_OUT_OF_TELEGRAM_SHARE = 0.9
+NEVER_IN_TELEGRAM = {"pure_automation", "ukraine_only", "people_lead"}
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +77,13 @@ def test_rules_separate_fit_from_no_on_the_real_verdicts(profile):  # pragma: no
     labelled = load_labelled()
     result = evaluate(labelled, profile)
 
-    assert result.fit_in_sheet >= MIN_FIT_IN_SHEET, report(labelled, profile)
+    assert result.fit_in_sheet == result.fit_total, report(labelled, profile)
     share = result.no_out_of_telegram / result.no_total
     assert share >= MIN_NO_OUT_OF_TELEGRAM_SHARE, report(labelled, profile)
+    in_telegram = [
+        (item.vacancy.company, item.category)
+        for item in labelled
+        if item.category in NEVER_IN_TELEGRAM
+        and (apply(item.vacancy, profile).score or 0) >= profile.notify_threshold
+    ]
+    assert in_telegram == [], report(labelled, profile)
