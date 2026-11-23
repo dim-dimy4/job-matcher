@@ -67,6 +67,7 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 | DOU.ua | Official RSS feeds, QA category (`remote`, `relocation`) | Used |
 | Himalayas | Official public JSON API (`/jobs/api/search`, `country=PL`); API terms allow personal use, Apply must use `applicationLink` | Used |
 | Djinni | Official RSS (`primary_keyword=QA Automation` and `QA`, `employment=remote`, `exp_level` 2y + 3y + 5y, decided 2026-11-23: the buckets are exact and don't overlap, a repeated parameter gives their union) plus the schema.org `JobPosting` JSON-LD of each job page, which holds company, location and salary; robots.txt allows `/jobs/`, no published terms found; at most 60 pages per run, 2 s apart | Used (v2) |
+| Jobicy | Official free API (`/api/jobs`, `geo=europe`, `industry=qa-testing`; `tag` also matches descriptions, so the industry is the precise filter), no key, last 7 days only; robots.txt allows `/api/`; API terms (checked 2026-11-23): at most 1 request per second, a new pass at most once an hour, credit Jobicy and link to the Jobicy job page | Used (v2): one request per run; about 2-3 real QA roles a week among translation and ad-rating jobs |
 | We Work Remotely | Public RSS, use allowed with attribution | Allowed; skipped for now: about 2 QA jobs at a time |
 | Remote OK | Public API, use allowed with a link back | Allowed; skipped for now: no QA jobs among the latest 99 |
 | Remotive | `/api/` disallowed in robots.txt | Not used |

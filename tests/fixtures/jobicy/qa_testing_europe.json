@@ -1,0 +1,166 @@
+{
+ "apiVersion": "2.2.22",
+ "documentationUrl": "https://jobi.cy/apidocs",
+ "friendlyNotice": "Thanks for using Jobicy API! Please ensure Jobicy is clearly credited with a direct link to the source, and all application buttons redirect to the original job URL provided in this feed. That’s all! You might be building something amazing, we wish you the best of luck!",
+ "jobCount": 27,
+ "lastUpdate": "2026-11-23T03:40:27+00:00",
+ "nextCursor": null,
+ "hasMore": false,
+ "appliedFilters": {
+  "count": 100,
+  "geo": "europe",
+  "industry": "qa-testing"
+ },
+ "jobs": [
+  {
+   "id": 156573,
+   "url": "https://jobicy.com/jobs/156573-engineering-manager-distributed-systems-python-go",
+   "jobSlug": "156573-engineering-manager-distributed-systems-python-go",
+   "jobTitle": "Engineering Manager - Distributed Systems, Python / Go",
+   "companyName": "Canonical",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2025/06/b4d068a9-221-1.png",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "EMEA,  LATAM,  Canada,  USA",
+   "jobLevel": "Senior",
+   "jobExcerpt": "Canonical is a leading provider of open source software and operating systems to the global enterprise and technology markets. Our platform, Ubuntu, is widely used in breakthrough enterprise initiatives such as public cloud, data science, AI, engineering innovation, and IoT. Our customers include th",
+   "jobDescription": "<p>Canonical is a leading provider of open source software and operating systems to the global enterprise and technology markets. Our platform, Ubuntu, is widely used in breakthrough enterprise initiatives such as public cloud, data science, AI, engineering innovation, and IoT. Our customers include the world's leading public cloud and silicon providers, as well as industry leaders across many sectors.</p>\n<p>Canonical is a pioneer of global distributed collaboration, with 1,200+ colleagues in 75+ countries and very few office-based roles. Teams meet two to four times yearly in person, in interesting locations around the world, to align on strategy and execution.</p>\n<p>The company is founder-led, profitable, and growing.</p>\n<p>We are hiring an<strong> Engineering Manager for Distributed Systems Testing </strong>to lead a team responsible for the quality engineering platform that enables deployment and validation of distributed systems across Canonical's cloud portfolio.</p>\n<p>We see quality engineering as a first-class engineering practice. Our Distributed Systems Testing team ensures the performance, correctness, resilience and interoperability of Canonical cloud solutions built with technologies such as Juju, Terraform, OpenStack and Kubernetes. These systems are deployed and tested across diverse environments, from bare-metal to the public cloud.</p>\n<p>As Engineering Manager, you will combine strong software engineering judgement with people leadership. You will develo",
+   "pubDate": "2026-11-23T03:35:14+00:00"
+  },
+  {
+   "id": 163823,
+   "url": "https://jobicy.com/jobs/163823-crux-video-and-audio-qa-french-france",
+   "jobSlug": "163823-crux-video-and-audio-qa-french-france",
+   "jobTitle": "Crux - Video and Audio QA - French (France)",
+   "companyName": "Welo Global",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Contract"
+   ],
+   "jobGeo": "France",
+   "jobLevel": "Senior",
+   "jobExcerpt": "Overview We are hiring Quality Control (QC) evaluators for a project that spans both Search and Linguistic tasks. You will perform quality checks on initial ratings produced by evaluators—validating user intent assessment, query annotation, text classification, and multimedia (video, image, audio) r",
+   "jobDescription": "<p>Overview </p>\n<p>We are hiring Quality Control (QC) evaluators for a project that spans both Search and Linguistic tasks. You will perform quality checks on initial ratings produced by evaluators—validating user intent assessment, query annotation, text classification, and multimedia (video, image, audio) reviews for relevance, accuracy, and guideline adherence. The ideal candidate combines strong language skills with sharp analytical judgment, excellent documentation and feedback skills, and familiarity with short-form video culture</p>\n<h3>What you will do</h3>\n<ul>\n<li>Audit samples of initial ratings for relevance, intent alignment, taxonomy compliance, and linguistic quality.</li>\n<li>Re-rate items (double-scoring) to verify labels; resolve discrepancies and document decisions.</li>\n<li>Perform linguistic quality checks (grammar, tone, clarity, local relevance) and media comprehension reviews.</li>\n<li>Classify and track errors using an agreed error taxonomy; surface trends and edge cases.</li>\n<li>Provide clear, actionable feedback to evaluators; contribute to guideline clarifications and updates.</li>\n<li>Participate in and lead calibration sessions to drive inter-rater agreement.</li>\n<li>Track and report QC metrics (e.g., agreement rates, accuracy, error trends) and meet QC SLAs.</li>\n<li>Triage escalations, handle ambiguous cases, and ensure data integrity and compliance.</li>\n<li>Use internal tools to complete, track, and submit QC tasks accurately.</li>\n</ul>\n<",
+   "pubDate": "2026-11-22T05:58:55+00:00",
+   "salaryMin": 27,
+   "salaryMax": 27,
+   "salaryCurrency": "USD",
+   "salaryPeriod": "hourly"
+  },
+  {
+   "id": 146757,
+   "url": "https://jobicy.com/jobs/146757-finnish-tech-linguistic-tester",
+   "jobSlug": "146757-finnish-tech-linguistic-tester",
+   "jobTitle": "Finnish Tech Linguistic Tester",
+   "companyName": "Welo Global",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "Anywhere",
+   "jobLevel": "Entry-Level, Junior",
+   "jobExcerpt": "As a trusted global transformation partner, Welocalize accelerates the global business journey by enabling brands and companies to reach, engage, and grow international audiences. Welocalize delivers multilingual content transformation services in translation, localization, and adaptation for over 2",
+   "jobDescription": "<div>As a trusted global transformation partner, Welocalize accelerates the global business journey by enabling brands and companies to reach, engage, and grow international audiences. Welocalize delivers multilingual content transformation services in translation, localization, and adaptation for over 250 languages with a growing network of over 400,000 in-country linguistic resources. Driving innovation in language services, Welocalize delivers high-quality training data transformation solutions for NLP-enabled machine learning by blending technology and human intelligence to collect, annotate, and evaluate all content types. Our team works across locations in North America, Europe, and Asia serving our global clients in the markets that matter to them. <a href=\"http://www.welocalize.com/\" rel=\"nofollow ugc noopener\" target=\"_blank\">www.welocalize.com</a></div><div> </div><div>To perform this job successfully, an individual must be able to perform each essential duty satisfactorily. The requirements listed below are representative of the knowledge, skill, and/or ability required. Reasonable accommodations may be made to enable individuals with disabilities to perform the essential functions.</div><div> </div><div><strong>OVERVIEW</strong></div><div> </div><div><strong>MAIN PURPOSE OF THE JOB</strong></div><div> </div><div>We are looking for a Tech Linguistic Tester, you will primarily be proofreading and editing content already localized to your native language, making sure",
+   "pubDate": "2026-11-21T03:05:34+00:00"
+  },
+  {
+   "id": 163591,
+   "url": "https://jobicy.com/jobs/163591-alpheratz-project-polish-poland-translation-quality-rater",
+   "jobSlug": "163591-alpheratz-project-polish-poland-translation-quality-rater",
+   "jobTitle": "Alpheratz Project - Polish (Poland) Translation Quality Rater",
+   "companyName": "Welo Global",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Contract"
+   ],
+   "jobGeo": "Poland",
+   "jobLevel": "Any",
+   "jobExcerpt": "We are looking for experienced language professionals to support an ongoing project focused on reviewing and refining Polish (Poland) customer service content. This role involves improving machine-translated materials to ensure accuracy, natural language, and alignment with project guidelines. What ",
+   "jobDescription": "<p>We are looking for experienced language professionals to support an ongoing project focused on reviewing and refining Polish (Poland) customer service content. This role involves improving machine-translated materials to ensure accuracy, natural language, and alignment with project guidelines.</p>\n<p><strong>What you’ll do</strong></p>\n<p>Edit and review machine-translated customer service content with a high level of accuracy and consistency.</p>\n<p>Evaluate MT output quality and apply severity ratings when required, following project guidelines.</p>\n<p>Produce high-quality human translations as reference data for model training and quality evaluation.</p>\n<p>Follow provided style guides, tone rules, and terminology requirements.</p>\n<p>Identify and report recurring MT quality issues and batch-level trends.</p>\n<p><strong>Project details</strong></p>\n<p>Language: Polish (Poland)</p>\n<p>Content type: Customer service content (general)</p>\n<p>Project duration: Ongoing</p>\n<p>Hourly rate: $<a href=\"http://17.01\" rel=\"nofollow ugc noopener\" target=\"_blank\">17.01</a></p>\n<h3>Requirements</h3>\n<ul>\n<li>Native proficiency in Polish (Poland) and strong English skills.</li>\n<li>Experience in translation, localization, or MT post-editing.</li>\n<li>Familiarity with machine translation quality evaluation and error identification.</li>\n<li>Strong attention to detail and a quality-focused mindset.</li>\n<li>Ability to work independently in an online environment.</li>\n</ul>\n<h3>Compensat",
+   "pubDate": "2026-11-20T17:28:53+00:00",
+   "salaryMin": 17,
+   "salaryMax": 17,
+   "salaryCurrency": "USD",
+   "salaryPeriod": "hourly"
+  },
+  {
+   "id": 163545,
+   "url": "https://jobicy.com/jobs/163545-senior-qa-engineer-6",
+   "jobSlug": "163545-senior-qa-engineer-6",
+   "jobTitle": "Senior QA Engineer",
+   "companyName": "HyperHug",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/11/04d564d3c979-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "Cyprus",
+   "jobLevel": "Senior",
+   "jobExcerpt": "HyperHug is an international game development studio specializing in the shooter genre. Our main office is based in Cyprus, but our talented team works remotely from around the world. We’re developing Oxide: Survival Island, an immersive multiplayer survival shooter for mobile platforms, and we’re a",
+   "jobDescription": "<p><strong><a href=\"https://jobicy.com/company/hyperhug\" target=\"_blank\" rel=\"noopener\">HyperHug</a></strong> is an international game development studio specializing in the shooter genre. Our main office is based in Cyprus, but our talented team works remotely from around the world. We’re developing <strong>Oxide: Survival Island</strong>, an immersive multiplayer survival shooter for mobile platforms, and we’re always looking for motivated individuals who want to grow with us, contribute their creativity, and help shape the future of our games.</p>\n<p>We are looking for <strong>Senior QA Engineer</strong> to join our team and contribute to the development and evolution of our flagship game, Oxide: Survival Island.</p>\n<p>In this role, you will be responsible for ensuring the quality and stability of the game across all stages of development — from testing new features and gameplay mechanics to regression and release validation. If you enjoy working closely with developers, have a strong eye for detail, and are passionate about survival games, we’d love to hear from you.</p>\n<h3><strong>What You’ll Be Doing:</strong></h3>\n<ul>\n<li>\n<p>Full-cycle testing of a mobile free-to-play project: testing new features and mechanics, regression testing, and acceptance testing.</p>\n</li>\n<li>\n<p>Creating, maintaining, and updating test documentation (test cases, checklists).</p>\n</li>\n<li>\n<p>Reporting and documenting found issues and preparing test reports.</p>\n</li>\n<li>\n<p>Close colla",
+   "pubDate": "2026-11-20T14:19:26+00:00"
+  },
+  {
+   "id": 153565,
+   "url": "https://jobicy.com/jobs/153565-ads-quality-rater-dutch-belgium",
+   "jobSlug": "153565-ads-quality-rater-dutch-belgium",
+   "jobTitle": "Ads Quality Rater - Dutch (Belgium)",
+   "companyName": "Welo Global",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Contract"
+   ],
+   "jobGeo": "Belgium",
+   "jobLevel": "Any",
+   "jobExcerpt": "Welo Data is an award-winning localization and data transformation company. We run one of the world’s largest Ads Rating Programs and we want you to join! As an Ads Quality Rater, you will review and grade internet advertisements to help shape how ads are delivered to the end users. In other words, ",
+   "jobDescription": "<p><b>Welo Data</b> is an award-winning localization and data transformation company. We run one of the world’s largest Ads Rating Programs and we want you to join! </p>\n<p><b>As an </b><i><b>Ads Quality Rater</b></i><b>, you will review and grade internet advertisements to help shape how ads are delivered to the end users.</b> In other words, you’ll tell the AI program how good or bad its advertisement suggestions are based on the user’s keywords.</p>\n<p>You will review ads in both <b>English </b>and <b>Dutch</b></p>\n\n<p><b>This role is great for people who:</b> </p>\n<p>- Surf the internet daily </p>\n<p>- Use major search engines frequently </p>\n<p>- Know what people want based on a few keywords </p>\n<p>- Enjoy researching topics online</p>\n<p>- Want a flexible and fun side job</p>\n\n<p><b><u>Project Details</u></b> </p>\n<p><b>Job Title:</b> <i>Ads Quality Rater - Dutch (Belgium)</i></p>\n<p><b>Pay Rate: </b>Based on tasks (approximately $16 per hour)</p>\n<p><b>Location:</b> Remote/work from home - <i>must be based in Belgium</i></p>\n<p><b>Hours:</b> Set your schedule based on the following – Minimum commitment is 5 hours per week. You can choose to work up to 20 hours per week.</p>\n<p><b>Start Date:</b> ASAP</p>\n<p><b>Employment Type:</b> Independent Contractor/Freelance/Self-Employed </p>\n<p><b>Project Duration:</b> Long-term</p>\n\n<p><b>Note: </b></p>\n<p>- <i>Even though the position is WFH, you must reside in the country that is noted in this description. This will be autom",
+   "pubDate": "2026-11-20T03:10:30+00:00",
+   "salaryMin": 16,
+   "salaryMax": 16,
+   "salaryPeriod": "hourly"
+  },
+  {
+   "id": 163106,
+   "url": "https://jobicy.com/jobs/163106-senior-qa-engineer-5",
+   "jobSlug": "163106-senior-qa-engineer-5",
+   "jobTitle": "Senior QA Engineer",
+   "companyName": "Cross River",
+   "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/11/5d9a1e470704-221.webp",
+   "jobIndustry": [
+    "QA & Testing"
+   ],
+   "jobType": [
+    "Full-Time"
+   ],
+   "jobGeo": "Spain",
+   "jobLevel": "Senior",
+   "jobExcerpt": "Who We Are Cross River builds the infrastructure behind the world’s most innovative financial products. Our technology and capital solutions power payments, cards, lending, and digital asset capabilities that move money safely, instantly, and inclusively — trusted by leading fintechs, enterprises, a",
+   "jobDescription": "<p><strong>Who We Are</strong></p>\n<p><a href=\"https://jobicy.com/company/cross-river\" target=\"_blank\" rel=\"noopener\">Cross River</a> builds the infrastructure behind the world’s most innovative financial products. Our technology and capital solutions power payments, cards, lending, and digital asset capabilities that move money safely, instantly, and inclusively — trusted by leading fintechs, enterprises, and disruptors across the globe.</p>\n<p>Our mission is simple: to build the financial infrastructure that expands access and opportunity for all. Guided by a culture of collaboration, curiosity, and purpose, Cross River has been named one of <em>American Banker’s</em> Best Places to Work in Fintech year after year. Whether you’re designing code, solving regulatory puzzles, or developing strategy, you’ll join a team where innovation and integrity drive everything we do — and where your work helps shape the future of finance.</p>\n<p><strong>The Role</strong></p>\n<p>We're looking for a highly technical Senior Quality Engineer to lead quality practices within one of Cross River's core engineering teams.</p>\n<p><strong>Who You Are</strong></p>\n<ul>\n<li>A highly technical Quality Engineer with extensive experience driving software quality across the entire development lifecycle.</li>\n<li>An expert in API testing and test automation, with strong test design and risk-based testing skills.</li>\n<li>A strategic thinker who can balance hands-on execution with defining broader quality ",
+   "pubDate": "2026-11-18T12:42:34+00:00",
+   "salaryMin": 55000,
+   "salaryMax": 70000,
+   "salaryCurrency": "EUR",
+   "salaryPeriod": "yearly"
+  }
+ ],
+ "statusCode": 200,
+ "success": true
+}
