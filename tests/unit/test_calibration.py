@@ -16,11 +16,14 @@ from job_matcher.profile import load_profile
 INVENTED_DIR = Path(__file__).parents[1] / "fixtures" / "calibration"
 
 # The real set (verdicts from the sheet's Status: Yes and 50/50 are fit, No is no): every fit
-# reaches the sheet; pure automation, Ukraine-only and lead roles never reach Telegram; and
-# 90% of all no's stay out of Telegram. The no's that do reach it are judgement calls rules
-# can't make (how deep a TypeScript or Java requirement goes).
+# reaches the sheet; the kinds of no the candidate keeps naming never reach Telegram; and 90%
+# of all no's stay out of it. The no's that do reach it are judgement calls rules can't make
+# (how deep a TypeScript or Java requirement goes, a pure manual role turned down).
 MIN_NO_OUT_OF_TELEGRAM_SHARE = 0.9
-NEVER_IN_TELEGRAM = {"pure_automation", "ukraine_only", "people_lead"}
+NEVER_IN_TELEGRAM = {
+    "pure_automation", "ukraine_only", "people_lead", "mobile", "foreign_area",
+    "employment_format", "part_time", "location",
+}  # fmt: skip
 
 
 @pytest.fixture(scope="module")
@@ -36,23 +39,25 @@ def invented():
 def test_each_source_goes_through_its_own_parser(invented):
     by_source = {item.vacancy.source: item for item in invented}
 
-    assert set(by_source) == {"dou", "djinni", "himalayas"}
+    assert set(by_source) == {"dou", "djinni", "himalayas", "jobicy"}
     assert by_source["dou"].vacancy.title == "Senior QA Engineer"
     assert by_source["dou"].vacancy.location == "за кордоном"
     assert by_source["djinni"].vacancy.location == "Europe"
     assert by_source["himalayas"].vacancy.company == "Gamma"
+    assert by_source["jobicy"].vacancy.location == "Europe"
 
 
 def test_excluded_rows_are_skipped(invented):
     assert {item.verdict for item in invented} == {"fit", "maybe", "no"}
-    assert len(invented) == 3, "the excluded row has no data file and is not read"
+    assert len(invented) == 4, "the excluded row has no data file and is not read"
 
 
 def test_evaluate_counts_fit_passed_and_no_rejected(invented, profile):
     result = evaluate(invented, profile)
 
     assert result.summary == (
-        "fit in the sheet: 1/1, no kept out of Telegram: 1/1 (100%), out of the sheet: 1/1 (100%)"
+        "fit in the sheet: 1/1, in Telegram: 1/1, no kept out of Telegram: 1/1 (100%), "
+        "out of the sheet: 1/1 (100%)"
     )
 
 

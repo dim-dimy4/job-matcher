@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from xml.etree.ElementTree import Element, SubElement
 
-from job_matcher.collectors import djinni, dou, himalayas
+from job_matcher.collectors import djinni, dou, himalayas, jobicy
 from job_matcher.matcher import apply
 from job_matcher.models import Vacancy
 from job_matcher.profile import Profile, load_profile
@@ -59,6 +59,8 @@ def load_labelled(directory: Path = LABELLED_DIR) -> list[Labelled]:
             vacancy = _dou(raw)
         elif label["source"] == "djinni":
             vacancy = _djinni(raw, label["url"])
+        elif label["source"] == "jobicy":
+            vacancy = jobicy.parse_job(raw)
         else:
             vacancy = himalayas.parse_job(raw)
         result.append(Labelled(vacancy, label["verdict"], label["category"]))
@@ -71,6 +73,7 @@ class Result:
     out of Telegram (and how many stay out of the sheet too)."""
 
     fit_in_sheet: int
+    fit_in_telegram: int
     fit_total: int
     no_out_of_telegram: int
     no_out_of_sheet: int
@@ -80,6 +83,7 @@ class Result:
     def summary(self) -> str:
         return (
             f"fit in the sheet: {self.fit_in_sheet}/{self.fit_total}, "
+            f"in Telegram: {self.fit_in_telegram}/{self.fit_total}, "
             f"no kept out of Telegram: {self.no_out_of_telegram}/{self.no_total} "
             f"({self.no_out_of_telegram / self.no_total:.0%}), "
             f"out of the sheet: {self.no_out_of_sheet}/{self.no_total} "
@@ -94,6 +98,7 @@ def evaluate(labelled: Sequence[Labelled], profile: Profile) -> Result:
     fit, no = scores("fit"), scores("no")
     return Result(
         fit_in_sheet=sum(s >= profile.sheet_threshold for s in fit),
+        fit_in_telegram=sum(s >= profile.notify_threshold for s in fit),
         fit_total=len(fit),
         no_out_of_telegram=sum(s < profile.notify_threshold for s in no),
         no_out_of_sheet=sum(s < profile.sheet_threshold for s in no),
