@@ -6,6 +6,8 @@ import pytest
 from job_matcher.collectors import himalayas
 from job_matcher.collectors.http import USER_AGENT, make_client
 
+REQUESTS = sum(himalayas.SEARCHES.values())  # 5: two pages of "QA", one of each other query
+
 
 @pytest.fixture
 def client():
@@ -23,16 +25,16 @@ def no_sleep(monkeypatch):
 
 @pytest.fixture
 def pages(respx_mock, read_fixture):
-    """Serve the saved pages by `?page=N`. A test can replace a page's response (or exception)."""
-    responses: dict[int, httpx.Response | Exception] = {
-        1: httpx.Response(200, content=read_fixture("himalayas/qa_pl_page1.json")),
-        2: httpx.Response(200, content=read_fixture("himalayas/qa_pl_page2.json")),
+    """Serve the saved pages by (query, page); anything else is an empty page. A test can
+    replace a response (or put an exception in its place)."""
+    responses: dict[tuple[str, int], httpx.Response | Exception] = {
+        ("QA", 1): httpx.Response(200, content=read_fixture("himalayas/qa_pl_page1.json")),
+        ("QA", 2): httpx.Response(200, content=read_fixture("himalayas/qa_pl_page2.json")),
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
-        result = responses.get(
-            int(request.url.params["page"]), httpx.Response(200, json={"jobs": []})
-        )
+        key = (request.url.params["q"], int(request.url.params["page"]))
+        result = responses.get(key, httpx.Response(200, json={"jobs": []}))
         if isinstance(result, Exception):
             raise result
         return result
@@ -45,40 +47,44 @@ def test_collect_merges_pages(client, pages, no_sleep):
     vacancies = himalayas.collect(client)
 
     assert len(vacancies) == 12
-    assert len({v.id for v in vacancies}) == 12
+    assert len({v.url for v in vacancies}) == 12
 
 
-def test_same_job_on_two_pages_is_kept_once(client, pages, no_sleep, read_fixture):
+def test_job_found_by_two_queries_is_kept_once(client, pages, no_sleep, read_fixture):
     responses, _ = pages
-    responses[2] = httpx.Response(200, content=read_fixture("himalayas/qa_pl_page1.json"))
+    responses[("Tester", 1)] = httpx.Response(
+        200, content=read_fixture("himalayas/qa_pl_page1.json")
+    )
 
-    assert len(himalayas.collect(client)) == 6
+    assert len(himalayas.collect(client)) == 12
 
 
-def test_requests_carry_search_params_and_user_agent(client, pages, no_sleep):
+def test_every_query_is_asked_with_the_search_params_and_user_agent(client, pages, no_sleep):
     _, route = pages
 
     himalayas.collect(client)
 
-    assert route.call_count == himalayas.MAX_PAGES
-    for page, call in enumerate(route.calls, start=1):
-        assert dict(call.request.url.params) == {**himalayas.SEARCH_PARAMS, "page": str(page)}
+    asked = [(c.request.url.params["q"], c.request.url.params["page"]) for c in route.calls]
+    assert asked == [("QA", "1"), ("QA", "2"), ("Quality Assurance", "1"),
+                     ("Test Engineer", "1"), ("Tester", "1")]  # fmt: skip
+    for call in route.calls:
+        assert call.request.url.params["country"] == "PL"
+        assert call.request.url.params["sort"] == "recent"
         assert call.request.headers["User-Agent"] == USER_AGENT
 
 
-def test_waits_between_pages(client, pages, no_sleep):
+def test_waits_before_every_request_but_the_first(client, pages, no_sleep):
     himalayas.collect(client)
 
-    assert no_sleep == [himalayas.DELAY_BETWEEN_PAGES_SECONDS] * (himalayas.MAX_PAGES - 1)
+    assert no_sleep == [himalayas.DELAY_BETWEEN_PAGES_SECONDS] * (REQUESTS - 1)
 
 
-def test_stops_at_empty_page(client, pages, no_sleep):
+def test_an_empty_page_ends_only_its_query(client, pages, no_sleep):
     responses, route = pages
-    responses[1] = httpx.Response(200, json={"jobs": []})
+    responses[("QA", 1)] = httpx.Response(200, json={"jobs": []})
 
     assert himalayas.collect(client) == []
-    assert route.call_count == 1
-    assert no_sleep == []
+    assert route.call_count == REQUESTS - 1, "page 2 of QA is skipped, the other queries run"
 
 
 @pytest.mark.parametrize(
@@ -94,16 +100,20 @@ def test_stops_at_empty_page(client, pages, no_sleep):
 )
 def test_failing_page_keeps_what_was_collected(client, pages, no_sleep, caplog, failure):
     responses, _ = pages
-    responses[2] = failure
+    responses[("QA", 2)] = failure
 
     vacancies = himalayas.collect(client)
 
     assert len(vacancies) == 6  # everything from page 1
-    assert "page 2 failed" in caplog.text
+    assert "'QA' page 2 failed" in caplog.text
 
 
-def test_failing_first_page_returns_empty_list(client, respx_mock, no_sleep):
-    route = respx_mock.get(himalayas.SEARCH_URL).mock(return_value=httpx.Response(503))
+def test_a_failing_query_does_not_stop_the_others(client, pages, no_sleep, read_fixture):
+    responses, route = pages
+    responses[("QA", 1)] = httpx.Response(503)
+    responses[("Tester", 1)] = httpx.Response(
+        200, content=read_fixture("himalayas/qa_pl_page2.json")
+    )
 
-    assert himalayas.collect(client) == []
-    assert route.call_count == 1  # no point asking for page 2 when page 1 is down
+    assert len(himalayas.collect(client)) == 6
+    assert route.call_count == REQUESTS - 1, "no point asking for page 2 when page 1 is down"

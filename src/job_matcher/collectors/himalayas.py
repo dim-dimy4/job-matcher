@@ -27,10 +27,11 @@ from job_matcher.normalize import (
 logger = logging.getLogger(__name__)
 
 SEARCH_URL = "https://himalayas.app/jobs/api/search"
-# Jobs open to candidates in Poland, newest first. Runs every 3 h, so 2 pages (40 jobs)
-# are enough to catch everything new without walking the whole result set.
-SEARCH_PARAMS = {"q": "QA", "country": "PL", "sort": "recent"}
-MAX_PAGES = 2
+# Jobs open to candidates in Poland, newest first.
+SEARCH_PARAMS = {"country": "PL", "sort": "recent"}
+# Query -> pages to read. Runs every 3 h, so 2 pages (40 jobs) of "QA" catch everything new;
+# the other queries find titles without "QA" ("Software Tester", "Test Engineer").
+SEARCHES = {"QA": 2, "Quality Assurance": 1, "Test Engineer": 1, "Tester": 1}
 DELAY_BETWEEN_PAGES_SECONDS = 2.0
 MAX_LISTED_COUNTRIES = 3
 
@@ -115,27 +116,31 @@ def parse_page(payload: dict[str, Any]) -> list[Vacancy]:
     return vacancies
 
 
-def fetch_page(client: httpx.Client, page: int) -> dict[str, Any]:
-    response = client.get(SEARCH_URL, params={**SEARCH_PARAMS, "page": page})
+def fetch_page(client: httpx.Client, page: int, query: str = "QA") -> dict[str, Any]:
+    response = client.get(SEARCH_URL, params={**SEARCH_PARAMS, "q": query, "page": page})
     response.raise_for_status()
     return response.json()
 
 
 def collect(client: httpx.Client, *, delay: float = DELAY_BETWEEN_PAGES_SECONDS) -> list[Vacancy]:
-    """Fetch up to MAX_PAGES pages, stop at the first empty or failing one, dedupe by id."""
+    """Run every search; a search stops at its first empty or failing page, the others go on.
+    The same job found by several queries is kept once (by URL)."""
     vacancies: dict[str, Vacancy] = {}
-    for page in range(1, MAX_PAGES + 1):
-        if page > 1:
-            time.sleep(delay)  # be polite: no bursts against the API
-        try:
-            batch = parse_page(fetch_page(client, page))
-        except (httpx.HTTPError, ValueError) as exc:  # json.JSONDecodeError is a ValueError
-            logger.warning("Himalayas: page %d failed: %s", page, exc)
-            break
-        if not batch:
-            break
-        for vacancy in batch:
-            vacancies.setdefault(vacancy.id, vacancy)
+    requests = 0
+    for query, pages in SEARCHES.items():
+        for page in range(1, pages + 1):
+            if requests:
+                time.sleep(delay)  # be polite: no bursts against the API
+            requests += 1
+            try:
+                batch = parse_page(fetch_page(client, page, query))
+            except (httpx.HTTPError, ValueError) as exc:  # json.JSONDecodeError is a ValueError
+                logger.warning("Himalayas: %r page %d failed: %s", query, page, exc)
+                break
+            if not batch:
+                break
+            for vacancy in batch:
+                vacancies.setdefault(str(vacancy.url), vacancy)
     return list(vacancies.values())
 
 
