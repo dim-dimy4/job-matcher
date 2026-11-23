@@ -69,8 +69,8 @@ job-matcher --buttons-only  # only apply the status buttons pressed in Telegram
 | Source | How | Notes |
 |---|---|---|
 | DOU.ua | Official RSS feeds (`category=QA`, `remote` and `relocation`) | 2 requests per run, deduplicated by URL; robots.txt allows `/vacancies/` |
-| [Himalayas](https://himalayas.app) | Official public [Remote Jobs API](https://himalayas.app/api), `q=QA&country=PL` | Up to 2 pages per run; links point to the job on Himalayas, whose Apply button is the `applicationLink` required by the [API terms](https://himalayas.app/terms#api) |
-| [Djinni](https://djinni.co) | Official RSS (`QA Automation` and `QA`, remote, 5+ years), then the schema.org `JobPosting` data of each job page for company, location and salary | Up to 2 feeds + 30 job pages per run, 2 s apart; robots.txt allows `/jobs/` |
+| [Himalayas](https://himalayas.app) | Official public [Remote Jobs API](https://himalayas.app/api), `country=PL`, queries `QA` (2 pages), `Quality Assurance`, `Test Engineer`, `Tester` (1 page each) | 5 requests per run, 2 s apart, deduplicated by URL; links point to the job on Himalayas, whose Apply button is the `applicationLink` required by the [API terms](https://himalayas.app/terms#api) |
+| [Djinni](https://djinni.co) | Official RSS (`QA Automation` and `QA`, remote, `exp_level` 2y + 3y + 5y: 2+ years), then the schema.org `JobPosting` data of each job page for company, location and salary | Up to 2 feeds + 60 job pages per run, 2 s apart; robots.txt allows `/jobs/` |
 
 JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and terms forbid automated collection (details in [SPEC §4.1](docs/SPEC.md)).
 
@@ -78,17 +78,18 @@ JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and
 
 Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). The target is a hybrid web/API role: manual testing plus automation in Python.
 
-- **Hard filters (score 0):** not a QA role; another stack, area or an SDET role in the title; junior; Polish above B1; minus keywords; on-site outside Wrocław; remote from Ukrainian cities only; more than 6 years of experience required; salary below the minimum.
+- **Hard filters (score 0):** not a QA role; in the title: SDET, Software Development Engineer, Architect, Part-Time, Golang, Appium, Data, Network(ing), ASIC, FPGA, embedded, hardware, firmware, performance, load testing; junior; Polish above B1; minus keywords; on-site outside Wrocław; remote from Ukrainian cities only; more than 6 years of experience required; salary below the minimum.
 - **Points:**
 
 | Rule | Points |
 |---|---|
-| Middle or Senior (alike) / Lead | +20 / −15 |
-| Hands-on testing: 3+ different phrases ("manual testing", "exploratory", "test cases"…) / 1–2 | +30 / +15 |
-| Automation title (AQA, Automation) with fewer than 3 such phrases | −15 |
+| Middle or Senior (alike; "Intermediate", "Regular", "Mid-level" are middle) / Lead | +20 / −15 |
+| No grade in the title, 2+ years asked | +20 |
+| Hands-on testing: "Manual" in the title, or 3+ different phrases ("manual testing", "exploratory", "test cases", "General QA"…) / 1–2 | +30 / +15 |
+| Automation title (AQA, Automation) without that | −15 |
 | Building frameworks ("from scratch", "test infrastructure"…), 2+ mentions | −20 |
 | Mobile, load testing, data or hardware as the focus, 4+ mentions each | −25 |
-| Java, C#, .NET, Kotlin or Swift in the post | −15 |
+| Another stack: Java, C#, .NET, Kotlin, Swift, JavaScript/TypeScript or Mobile in the title, or Java, C#, .NET, Kotlin, Swift in the post (once) | −15 |
 | Candidate's stack (Python, Pytest, Playwright, Selenium, Postman, REST/API, SQL) | +5 each, max +20 |
 | Domain (SaaS, AI/LLM, payments, marketplace, EdTech) | +5 each, max +10 |
 | Remote from Poland/EU/abroad, or Wrocław | +10 |
@@ -103,29 +104,35 @@ Salary thresholds in `profile.yaml` are examples; the real ones are read from th
     +10 remote: Poland
 ```
 
+New vacancies scoring at least 50 (`sheet_threshold`) go to the sheet; those reaching 65 (`notify_threshold`) also go to Telegram.
+
 ### Calibration
 
-The weights were set against the candidate's own verdicts on the first 56 vacancies the bot sent (7 fit, 5 maybe, 38 no, 6 excluded because the post was gone):
+The rules are checked against the candidate's own verdicts in the sheet's Status column: Yes and 50/50 count as fit, No as no; Closed, New and Skipped are left out.
 
-| | Fit passed | No rejected |
-|---|---|---|
-| Before (role +30, seniority +20, keywords) | 6 / 7 | 6 / 38 (16%) |
-| After (the rules above, threshold 60) | 6 / 7 | 37 / 38 (97%) |
+| Round | Verdicts | Fit reaching the sheet | No kept out of Telegram |
+|---|---|---|---|
+| v1 rules (role +30, seniority +20, keywords) | first 56 rows | 6 / 7 | 6 / 38 (16%) |
+| v2 rules, threshold 60 | first 56 rows | 6 / 7 | 37 / 38 (97%) |
+| v2 rules, before the 2026-11-23 round (sheet 50, Telegram 65) | 78 rows | 13 / 15 | 42 / 45 (93%) |
+| After the 2026-11-23 round | 78 rows | 15 / 15 | 42 / 45 (93%) |
 
-The miss is a fit with no hands-on testing in the text at all, which rules can't tell from a pure automation role. The rules were tuned on the same 56 vacancies they are measured on, so 97% is optimistic; new vacancies are the real test. No rule names a company or a vacancy.
+No pure-automation, Ukraine-only or lead role reaches Telegram. The three no's that do are a pure manual role and two hybrids turned down for how deep a TypeScript or Java requirement goes: a judgement rules can't make. The rules are tuned on the same rows they are measured on, so new vacancies are the real test. No rule names a company or a vacancy.
 
 The dataset (full job posts and private verdicts) is kept in a git-ignored `data/labelled/` folder; a public repository shouldn't redistribute other people's job posts. With it in place:
 
 ```bash
 python -m job_matcher.calibration   # every vacancy with its score and reasons, then the two numbers
-pytest tests/unit/test_calibration.py   # fails if the rules fall below 6/7 fit or 90% no
+pytest tests/unit/test_calibration.py   # fails if a fit misses the sheet, a pure-automation, Ukraine-only or lead role reaches Telegram, or under 90% of no's stay out of it
 ```
 
 In CI the real-data test is skipped; the loader and the report are tested on a tiny invented set.
 
 ## Outputs
 
-New vacancies scoring at least `notify_threshold` (60) are appended to the "Job Tracker" Google Sheet, and the 10 best of them are sent to Telegram. The sheet is also the dedup memory: a vacancy whose link, or company + title, is already there is skipped, so a job posted on both boards arrives once.
+New vacancies scoring at least `sheet_threshold` (50) are appended to the "Job Tracker" Google Sheet; those reaching `notify_threshold` (65) are also sent to Telegram, the 10 best per run.
+
+Every run reports its funnel in the log and in the GitHub Actions job summary (the run page): collected per source, rejected per hard filter, below the sheet threshold, already known, written to the sheet, sent to Telegram. `--dry-run` prints the first stages. The sheet is also the dedup memory: a vacancy whose link, or company + title, is already there is skipped, so a job posted on both boards arrives once.
 
 One-time setup (secrets go in `.env`, template `.env.example`; it is git-ignored):
 
