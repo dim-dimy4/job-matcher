@@ -52,6 +52,9 @@ def test_html_to_text_strips_tags_and_entities():
         ("Strong Junior QA Manual", Seniority.JUNIOR),
         ("QA Engineer (Intern)", Seniority.JUNIOR),
         ("Mobile QA Engineer (Middle)", Seniority.MIDDLE),
+        ("Intermediate Test Engineer - OP02297", Seniority.MIDDLE),
+        ("Regular QA Engineer", Seniority.MIDDLE),
+        ("Mid-Level QA Analyst", Seniority.MIDDLE),
         ("QA Automation Engineer (Mobile)", None),
         ("Leading QA Engineer", None),  # word boundary: "Leading" is not "Lead"
     ],

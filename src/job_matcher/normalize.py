@@ -40,7 +40,11 @@ def html_to_text(markup: str) -> str:
 _SENIORITY_PATTERNS = [
     (Seniority.LEAD, re.compile(r"\b(lead|head|principal)\b", re.IGNORECASE)),
     (Seniority.SENIOR, re.compile(r"\b(senior|sr|expert)\b", re.IGNORECASE)),
-    (Seniority.MIDDLE, re.compile(r"\b(middle|mid)\b", re.IGNORECASE)),
+    # "Regular" is the Polish boards' middle; "Intermediate" is used by some companies.
+    (
+        Seniority.MIDDLE,
+        re.compile(r"\b(middle|mid|mid-level|intermediate|regular)\b", re.IGNORECASE),
+    ),
     (Seniority.JUNIOR, re.compile(r"\b(junior|jr|intern|trainee)\b", re.IGNORECASE)),
 ]
 
