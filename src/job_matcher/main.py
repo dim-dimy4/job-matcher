@@ -20,7 +20,8 @@ from dotenv import load_dotenv
 
 from job_matcher.collectors import djinni, dou, himalayas
 from job_matcher.collectors.http import make_client
-from job_matcher.matcher import apply
+from job_matcher.funnel import Funnel, write_summary
+from job_matcher.matcher import apply, rejection_rule
 from job_matcher.models import Vacancy
 from job_matcher.notifier.buttons import process_presses
 from job_matcher.notifier.telegram import TelegramBot, TelegramError
@@ -59,19 +60,29 @@ def collect_all(client: httpx.Client) -> list[Vacancy]:
 
 
 def select_new(
-    vacancies: Sequence[Vacancy], profile: Profile, known: KnownVacancies
+    vacancies: Sequence[Vacancy],
+    profile: Profile,
+    known: KnownVacancies,
+    funnel: Funnel | None = None,
 ) -> list[Vacancy]:
     """Matches at or above the threshold that aren't known yet, best first.
 
     Selected vacancies are added to `known`, so a posting found on both boards in one run
     is kept once (the higher-scored copy, thanks to the sort).
     """
+    funnel = funnel if funnel is not None else Funnel()
     scored = sorted(
         (apply(v, profile) for v in vacancies), key=lambda v: v.score or 0, reverse=True
     )
     new = []
     for v in scored:
-        if (v.score or 0) >= profile.notify_threshold and v not in known:
+        if v.score == 0 and any(rejection_rule(r) for r in v.match_reasons):
+            funnel.count_rejected(v)
+        elif (v.score or 0) < profile.notify_threshold:
+            funnel.below_threshold += 1
+        elif v in known:
+            funnel.already_known += 1
+        else:
             known.add(v)
             new.append(v)
     return new
@@ -85,35 +96,41 @@ def run(
     *,
     limit: int = MAX_MESSAGES_PER_RUN,
     delay: float = DELAY_BETWEEN_MESSAGES_SECONDS,
-) -> int:
-    """Returns the number of failed notifications."""
-    new = select_new(vacancies, profile, tracker.known)
+) -> Funnel:
+    """One run over the collected vacancies; returns its funnel statistics."""
+    funnel = Funnel()
+    funnel.count_collected(vacancies)
+    new = select_new(vacancies, profile, tracker.known, funnel)
     # The sheet first: if Telegram fails afterwards, the vacancy is still logged and isn't
     # sent again next run. A missed message is better than the same message every 3 hours.
     tracker.append(new)
-    failures = 0
+    funnel.written = len(new)
     for i, v in enumerate(new[:limit]):
         if i:
             time.sleep(delay)
         try:
             notifier.send(v)
+            funnel.sent += 1
         except TelegramError as exc:
-            failures += 1
+            funnel.failed += 1
             log.error("Telegram: %s @ %s not sent: %s", v.title, v.company, exc)
-    log.info(
-        "%d collected, %d new matches, %d sent to Telegram, %d failed",
-        len(vacancies), len(new), min(len(new), limit) - failures, failures,
-    )  # fmt: skip
-    return failures
+    for line in funnel.lines():
+        log.info("Funnel: %s", line)
+    write_summary(funnel)
+    return funnel
 
 
 def _print_matches(vacancies: Sequence[Vacancy], profile: Profile) -> None:
-    matches = select_new(vacancies, profile, KnownVacancies())
+    funnel = Funnel()
+    funnel.count_collected(vacancies)
+    matches = select_new(vacancies, profile, KnownVacancies(), funnel)
     # A Windows console defaults to a legacy code page without "ó" or Cyrillic.
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     for v in matches:
         print(f"{v.score:>3}  {v.title} @ {v.company}  | {location_format(v)}  {salary_range(v)}")
     print(f"\n{len(matches)} of {len(vacancies)} vacancies reach {profile.notify_threshold}")
+    # The sheet isn't read in a dry run: "already known" stays 0 and nothing is written.
+    print("\n".join(["", *(f"Funnel: {line}" for line in funnel.lines()[:3])]))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -153,7 +170,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             log.error("Buttons: %s", exc)
             failures = 1
         if not args.buttons_only:
-            failures += run(collect_all(http), load_profile(), tracker, bot)
+            failures += run(collect_all(http), load_profile(), tracker, bot).failed
     return 1 if failures else 0
 
 

@@ -40,6 +40,29 @@ SALARY_POINTS = 10
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
 
+REJECTED = "rejected: "
+# The start of each hard-filter reason -> its name in the funnel statistics.
+_RULES = {
+    "minus keywords": "minus keywords",
+    "title says": "another stack or area in the title",
+    "requires Polish": "Polish above B1",
+    "junior": "junior",
+    "not a QA role": "not a QA role",
+    "location": "on-site outside the profile cities",
+    "remote from": "remote from Ukraine only",
+    "asks for": "too many years of experience",
+    "salary": "salary below the minimum",
+}
+
+
+def rejection_rule(reason: str) -> str | None:
+    """'rejected: title says Java' -> 'another stack or area in the title'; None if the
+    reason is not a rejection."""
+    if not reason.startswith(REJECTED):
+        return None
+    text = reason.removeprefix(REJECTED)
+    return next((name for start, name in _RULES.items() if text.startswith(start)), text)
+
 
 @dataclass(frozen=True)
 class Match:
@@ -71,25 +94,25 @@ def _local_only(v: Vacancy, profile: Profile) -> bool:
 def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
     reasons = []
     if minus := _found(profile.minus_keywords, f"{v.company} {text}"):
-        reasons.append(f"rejected: minus keywords {', '.join(minus)}")
+        reasons.append(f"{REJECTED}minus keywords {', '.join(minus)}")
     if foreign := _found(profile.title_minus_keywords, v.title):
-        reasons.append(f"rejected: title says {', '.join(foreign)}")
+        reasons.append(f"{REJECTED}title says {', '.join(foreign)}")
     if v.requires_polish:
-        reasons.append("rejected: requires Polish above B1")
+        reasons.append(REJECTED + "requires Polish above B1")
     if v.seniority is Seniority.JUNIOR or _JUNIOR_TITLE.search(v.title):
-        reasons.append("rejected: junior")
+        reasons.append(REJECTED + "junior")
     if not _found(profile.role_keywords, v.title):
-        reasons.append("rejected: not a QA role")
+        reasons.append(REJECTED + "not a QA role")
     if v.remote is not RemoteType.YES and not _found(profile.cities, v.location or ""):
-        reasons.append(f"rejected: location {v.location or 'unknown'} is not remote or Wrocław")
+        reasons.append(f"{REJECTED}location {v.location or 'unknown'} is not remote or Wrocław")
     elif v.remote is RemoteType.YES and _local_only(v, profile):
-        reasons.append(f"rejected: remote from {v.location} only")
+        reasons.append(f"{REJECTED}remote from {v.location} only")
     years = required_years(text)
     if profile.max_years_required is not None and (years or 0) > profile.max_years_required:
-        reasons.append(f"rejected: asks for {years}+ years of experience")
+        reasons.append(f"{REJECTED}asks for {years}+ years of experience")
     base = _salary_in_base(v, profile)
     if base is not None and base < profile.salary.minimum:
-        reasons.append(f"rejected: {_salary_label(v, base, profile)} is below the minimum")
+        reasons.append(f"{REJECTED}{_salary_label(v, base, profile)} is below the minimum")
     return reasons
 
 

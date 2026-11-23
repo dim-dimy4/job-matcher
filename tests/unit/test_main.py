@@ -118,9 +118,9 @@ def test_select_new_skips_known_and_cross_board_duplicates(profile, job):
 
 
 def test_run_writes_the_sheet_before_telegram(profile, job, events, tracker, notifier, no_sleep):
-    failures = pipeline.run([job(1, "Python"), job(2, "Python")], profile, tracker, notifier)
+    funnel = pipeline.run([job(1, "Python"), job(2, "Python")], profile, tracker, notifier)
 
-    assert failures == 0
+    assert (funnel.written, funnel.sent, funnel.failed) == (2, 2, 0)
     assert events == ["sheet", "telegram", "telegram"]
     assert _titles(notifier.sent) == _titles(tracker.appended)
 
@@ -139,20 +139,48 @@ def test_run_continues_after_a_failed_message(profile, job, tracker, notifier, n
     notifier.fail_on = {"Senior QA Engineer 1"}
 
     with caplog.at_level(logging.INFO, logger="job_matcher"):
-        failures = pipeline.run([job(1, "Python"), job(2, "Python")], profile, tracker, notifier)
+        funnel = pipeline.run([job(1, "Python"), job(2, "Python")], profile, tracker, notifier)
 
-    assert failures == 1
+    assert funnel.failed == 1
     assert _titles(notifier.sent) == ["Senior QA Engineer 2"]
     assert "Senior QA Engineer 1 @ Acme not sent: Telegram returned HTTP 400" in caplog.text
-    assert "2 collected, 2 new matches, 1 sent to Telegram, 1 failed" in caplog.text
+    assert "Funnel: written to the sheet 2, sent to Telegram 1, failed 1" in caplog.text
 
 
 def test_run_with_nothing_new_sends_nothing(profile, job, events, notifier, no_sleep):
     tracker = FakeTracker(events, known=[job(1, "Python")])
 
-    assert pipeline.run([job(1, "Python")], profile, tracker, notifier) == 0
+    assert pipeline.run([job(1, "Python")], profile, tracker, notifier).already_known == 1
     assert events == ["sheet"]
     assert tracker.appended == []
+
+
+def test_funnel_sorts_every_vacancy_into_one_stage(profile, job, events, notifier, no_sleep):
+    tracker = FakeTracker(events, known=[job(1, "Python")])
+    vacancies = [
+        job(1, "Python"),  # already in the sheet
+        job(2),  # 30 points: below the threshold of 35
+        job(3, "Python", title="Junior QA"),  # rejected
+        job(4, "Python"),  # new
+    ]
+
+    funnel = pipeline.run(vacancies, profile, tracker, notifier)
+
+    assert funnel.collected == {"dou": 4}
+    assert (funnel.rejected, funnel.below_threshold, funnel.already_known, funnel.written) == (
+        1, 1, 1, 1,
+    )  # fmt: skip
+    assert funnel.rejected_by == {"junior": 1}
+
+
+def test_run_writes_the_funnel_to_the_job_summary(profile, job, tracker, notifier, no_sleep,
+                                                  monkeypatch, tmp_path):  # fmt: skip
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+
+    pipeline.run([job(1, "Python")], profile, tracker, notifier)
+
+    assert "| **written to the sheet** | **1** |" in summary.read_text(encoding="utf-8")
 
 
 def test_collect_all_merges_all_boards(monkeypatch, job):
@@ -285,6 +313,8 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert " 35  Senior QA Engineer 1 @ Acme  | Poland · remote" in out
     assert "1 of 2 vacancies reach 35" in out
+    assert "Funnel: collected 2 (dou 2)" in out
+    assert "Funnel: below the threshold 1, already known 0" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 
 
