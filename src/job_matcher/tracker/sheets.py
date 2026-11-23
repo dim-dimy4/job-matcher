@@ -17,6 +17,7 @@ import gspread
 from gspread.utils import rowcol_to_a1
 
 from job_matcher.models import RemoteType, Vacancy, url_id
+from job_matcher.normalize import clean_company
 
 # The header the bot writes on an empty sheet. Columns are found by name, not position:
 # adding, removing or moving a column by hand in the sheet breaks nothing.
@@ -70,11 +71,28 @@ def find_columns(header: Sequence[str]) -> dict[str, int]:
 
 
 _NON_WORD = re.compile(r"\W+")
+# The legal form, not the name: boards spell one company "The Codest", "Codest Ltd." or
+# "Codest Sp. z o.o.". Matched after punctuation became spaces ("sp z o o", "s a"), and only
+# at the ends: "Co-Op Bank" keeps its "co".
+_LEADING_THE = re.compile(r"^the ")
+_LEGAL_FORM = re.compile(
+    r"( (ltd|limited|inc|incorporated|llc|plc|corp|corporation|co|gmbh|ag|bv|oy|ab|srl"
+    r"|s a|sp z o o|sp k|spolka z o o|spółka z o o))+$"
+)
+
+
+def _words(text: str) -> str:
+    return " ".join(_NON_WORD.sub(" ", text).casefold().split())
+
+
+def company_key(company: str) -> str:
+    name = _words(clean_company(company))
+    return _LEGAL_FORM.sub("", _LEADING_THE.sub("", name)) or name
 
 
 def same_job_key(company: str, title: str) -> str:
     """One posting on two boards has two URLs but the same company and title."""
-    return "|".join(_NON_WORD.sub(" ", part).casefold().strip() for part in (company, title))
+    return f"{company_key(company)}|{_words(title)}"
 
 
 class KnownVacancies:
