@@ -71,6 +71,8 @@ Collection rules: infrequent requests, a user-agent with contact info, respect r
 | SmartRecruiters | Public posting API, but `api.smartrecruiters.com/robots.txt` disallows everyone except LinkedInBot | Not used |
 | Jobicy | Official free API (`/api/jobs`, `geo=europe`, `industry=qa-testing`; `tag` also matches descriptions, so the industry is the precise filter), no key, last 7 days only; robots.txt allows `/api/`; API terms (checked 2026-11-23): at most 1 request per second, a new pass at most once an hour, credit Jobicy and link to the Jobicy job page | Used (v2): one request per run; about 2-3 real QA roles a week among translation and ad-rating jobs |
 | Arbeitnow | Official free API (`/api/job-board-api`), no key, newest first, 300 jobs a page, no search or location parameters; robots.txt allows everything; terms (checked 2026-11-23) §11: the API is "as is", a link back to Arbeitnow is required, permission may be revoked; §2 limits use to personal, non-commercial viewing | Used (v2): the first page only (about two days of postings, 2 MB), filtered here to QA-like titles that are remote or in Poland; mostly German jobs, so few results |
+| Adzuna | Official API with a free key, given at once after sign-up (name, site, intended use); "personal job search" is a permitted use, other uses need a written agreement; shown ads must carry an Adzuna logo linked to the site; descriptions come as snippets only; limits are shown only in the account; robots.txt of `api.adzuna.com` disallows all (aimed at crawlers, the API itself is keyed). Poland (`pl`) is not confirmed from the docs: the country list is rendered by JavaScript | Checked 2026-11-23, not used: the candidate decides; one keyed request would confirm Poland |
+| Jooble | API key on request through a form; no published limits or API terms; the website terms forbid bots and republishing without written permission; Poland exists as a site (pl.jooble.org), API coverage not stated | Checked 2026-11-23, not used: terms unclear |
 | We Work Remotely | Public RSS, use allowed with attribution | Allowed; skipped for now: about 2 QA jobs at a time |
 | Remote OK | Public API, use allowed with a link back | Allowed; skipped for now: no QA jobs among the latest 99 |
 | Remotive | `/api/` disallowed in robots.txt | Not used |
@@ -131,10 +133,10 @@ Status buttons (v2): **Applied** and **Skipped** under each message. The bot has
 ```
 job-matcher/
   src/job_matcher/
-    collectors/ (himalayas.py, dou.py, djinni.py)
+    collectors/ (himalayas.py, dou.py, djinni.py, jobicy.py, arbeitnow.py, ats.py)
     models.py  normalize.py  profile.py  matcher.py  settings.py
     notifier/ (telegram.py, buttons.py)  tracker/sheets.py  main.py
-  config/profile.yaml
+  config/ (profile.yaml, companies.yaml)
   tests/ (unit/, fixtures/, contract/)
   .github/workflows/ (ci.yml, schedule.yml, buttons.yml, contract.yml)
   docs/SPEC.md  README.md

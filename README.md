@@ -5,7 +5,7 @@
 [![Status buttons](https://github.com/dim-dimy4/job-matcher/actions/workflows/buttons.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/buttons.yml)
 [![Contract tests](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml/badge.svg)](https://github.com/dim-dimy4/job-matcher/actions/workflows/contract.yml)
 
-Collects QA vacancies (DOU, Himalayas, Djinni), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
+Collects QA vacancies (DOU, Himalayas, Djinni, Jobicy, Arbeitnow and company boards on Greenhouse, Lever, Ashby and Recruitee), scores them against a candidate profile, sends the good ones to Telegram and logs them in a Google Sheet. Spec: [docs/SPEC.md](docs/SPEC.md).
 
 > Status: MVP done (stage 6 of 6) — runs every 3 hours on GitHub Actions. v2: Djinni, status buttons in Telegram and a matcher calibrated on real verdicts are done; next is LLM scoring.
 
@@ -18,12 +18,14 @@ flowchart LR
         dou["DOU<br/>RSS"]
         him["Himalayas<br/>JSON API"]
         djinni["Djinni<br/>RSS + JSON-LD"]
+        feeds["Jobicy, Arbeitnow<br/>JSON APIs"]
+        ats["Company boards<br/>Greenhouse, Lever,<br/>Ashby, Recruitee"]
     end
-    main --> dou & him & djinni
-    dou & him & djinni -->|Vacancy| matcher["matcher<br/>rules from profile.yaml"]
-    matcher -->|"score ≥ 70"| dedup{"already in<br/>the sheet?"}
+    main --> dou & him & djinni & feeds & ats
+    dou & him & djinni & feeds & ats -->|Vacancy| matcher["matcher<br/>rules from profile.yaml"]
+    matcher -->|"score ≥ 50"| dedup{"already in<br/>the sheet?"}
     dedup -->|new| sheet[("Google Sheet<br/>Job Tracker")]
-    sheet -->|"best 10"| tg["Telegram"]
+    sheet -->|"score ≥ 65, best 10"| tg["Telegram"]
     sheet -. "links, company + title" .-> dedup
     tg -. "Applied / Skipped<br/>every 15 min" .-> sheet
 ```
@@ -71,6 +73,12 @@ job-matcher --buttons-only  # only apply the status buttons pressed in Telegram
 | DOU.ua | Official RSS feeds (`category=QA`, `remote` and `relocation`) | 2 requests per run, deduplicated by URL; robots.txt allows `/vacancies/` |
 | [Himalayas](https://himalayas.app) | Official public [Remote Jobs API](https://himalayas.app/api), `country=PL`, queries `QA` (2 pages), `Quality Assurance`, `Test Engineer`, `Tester` (1 page each) | 5 requests per run, 2 s apart, deduplicated by URL; links point to the job on Himalayas, whose Apply button is the `applicationLink` required by the [API terms](https://himalayas.app/terms#api) |
 | [Djinni](https://djinni.co) | Official RSS (`QA Automation` and `QA`, remote, `exp_level` 2y + 3y + 5y: 2+ years), then the schema.org `JobPosting` data of each job page for company, location and salary | Up to 2 feeds + 60 job pages per run, 2 s apart; robots.txt allows `/jobs/` |
+
+| [Jobicy](https://jobicy.com) | Official free API, `geo=europe`, `industry=qa-testing` (last 7 days) | 1 request per run; links point to the Jobicy job page, which the API terms ask for |
+| [Arbeitnow](https://www.arbeitnow.com) | Official free API, first page (300 newest jobs, about two days) | 1 request per run, filtered here to QA-like titles that are remote or in Poland; links point to Arbeitnow, as the terms ask |
+| Company boards | Public job-board APIs of Greenhouse, Lever, Ashby and Recruitee for the companies in [`config/companies.yaml`](config/companies.yaml) | 1 request per company, 1 s apart; QA-like titles open to someone in Poland (Poland or a Polish city, or remote without a narrower region than Europe) |
+
+Every source's robots.txt and terms were checked before it was added ([SPEC §4.1](docs/SPEC.md)). To follow another company, add it to `config/companies.yaml` with its ATS and board slug (the part of the board URL after the ATS host, e.g. `jobs.lever.co/<slug>`); companies on other systems (Workday, Workable, Teamtailor…) aren't supported.
 
 JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and terms forbid automated collection (details in [SPEC §4.1](docs/SPEC.md)).
 
