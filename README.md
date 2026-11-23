@@ -86,7 +86,8 @@ JustJoin.it and No Fluff Jobs were considered and rejected: their robots.txt and
 
 Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](config/profile.yaml). The target is a hybrid web/API role: manual testing plus automation in Python.
 
-- **Hard filters (score 0):** not a QA role; in the title: SDET, Software Development Engineer, Architect, Part-Time, Golang, Appium, Data, Network(ing), ASIC, FPGA, embedded, hardware, firmware, performance, load testing; junior; Polish above B1; minus keywords; on-site outside Wrocław; remote from Ukrainian cities only; more than 6 years of experience required; salary below the minimum.
+- **Hard filters (score 0):** not a QA role; in the title: SDET, Software Development Engineer, Architect, Part-Time, Golang, Appium, Desktop, Unreal Engine, Unity, Data, Network(ing), ASIC, FPGA, embedded, hardware, firmware, performance, load testing; an unwanted area (mobile, load testing, data, hardware and networks, desktop apps, game engines) in 4+ sentences or list items; freelance, or a project of 6 months or less; junior; Polish above B1; minus keywords; on-site outside Wrocław; remote for Ukraine only (DOU office cities, or Djinni's "Ukraine"); more than 6 years of experience required; salary below the minimum.
+- **Skipped before scoring:** published more than 30 days ago, when the source gives the date (Djinni gives the date a post was last bumped, so an old post bumped this week still counts as new).
 - **Points:**
 
 | Rule | Points |
@@ -96,8 +97,10 @@ Rules from [SPEC §6](docs/SPEC.md), profile data in [config/profile.yaml](confi
 | Hands-on testing: "Manual" in the title, or 3+ different phrases ("manual testing", "exploratory", "test cases", "General QA"…) / 1–2 | +30 / +15 |
 | Automation title (AQA, Automation) without that | −15 |
 | Building frameworks ("from scratch", "test infrastructure"…), 2+ mentions | −20 |
-| Mobile, load testing, data or hardware as the focus, 4+ mentions each | −25 |
-| Another stack: Java, C#, .NET, Kotlin, Swift, JavaScript/TypeScript or Mobile in the title, or Java, C#, .NET, Kotlin, Swift in the post (once) | −15 |
+| An unwanted area as the focus: named in the title, or in 3 sentences or list items | −40 (outweighs "Manual" in the title) |
+| Another stack: Java, C#, .NET, Kotlin, Swift, JavaScript/TypeScript in the title, or Java, C#, .NET, Kotlin, Swift in the post, counted once: on an automation role, or named in 3+ places / on a hands-on role, named once or twice / with Python offered as the choice ("Python or Java") | −30 / −15 / 0 |
+| Working hours set by a US time zone (MST, PST, EST…, "US time zones") | −20 |
+| Remote for named countries without Poland or Europe ("Spain", "Canada, USA") | −20 |
 | Candidate's stack (Python, Pytest, Playwright, Selenium, Postman, REST/API, SQL) | +5 each, max +20 |
 | Domain (SaaS, AI/LLM, payments, marketplace, EdTech) | +5 each, max +10 |
 | Remote from Poland/EU/abroad, or Wrocław | +10 |
@@ -124,8 +127,10 @@ The rules are checked against the candidate's own verdicts in the sheet's Status
 | v2 rules, threshold 60 | first 56 rows | 6 / 7 | 37 / 38 (97%) |
 | v2 rules, before the 2026-11-23 round (sheet 50, Telegram 65) | 78 rows | 13 / 15 | 42 / 45 (93%) |
 | After the 2026-11-23 round | 78 rows | 15 / 15 | 42 / 45 (93%) |
+| Before the second 2026-11-23 round | 105 rows | 24 / 25 (18 reach Telegram) | 54 / 60 (90%); 37 below the sheet |
+| After the second 2026-11-23 round | 105 rows | 25 / 25 (18 reach Telegram) | 57 / 60 (95%); 54 below the sheet |
 
-No pure-automation, Ukraine-only or lead role reaches Telegram. The three no's that do are a pure manual role and two hybrids turned down for how deep a TypeScript or Java requirement goes: a judgement rules can't make. The rules are tuned on the same rows they are measured on, so new vacancies are the real test. No rule names a company or a vacancy.
+No pure-automation, Ukraine-only, lead, mobile, other-area, short-project or other-country role reaches Telegram. The three no's that do are a pure manual role and two hybrids turned down for how deep a TypeScript or Java requirement goes: a judgement rules can't make. The rules are tuned on the same rows they are measured on, so new vacancies are the real test. No rule names a company or a vacancy.
 
 The dataset (full job posts and private verdicts) is kept in a git-ignored `data/labelled/` folder; a public repository shouldn't redistribute other people's job posts. With it in place:
 
