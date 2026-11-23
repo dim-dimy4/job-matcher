@@ -250,6 +250,10 @@ minus_keywords:
 # A post asking for more years of experience than this: score 0.
 max_years_required: 6
 
+# A post published longer ago than this is skipped, when the source gives the date: a role
+# open for over a month is often filled or stale.
+max_age_days: 30
+
 # Monthly salary thresholds in one base currency; USD/EUR are converted by the rates.
 # Compared with the top of the range. No salary in the post: not filtered, no bonus.
 # The values below are EXAMPLES. The real ones come from the SALARY_MINIMUM and

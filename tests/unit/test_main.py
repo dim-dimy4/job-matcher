@@ -1,6 +1,7 @@
 """The pipeline with fake outputs: what goes to the sheet, what goes to Telegram, in which order."""
 
 import logging
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -196,6 +197,30 @@ def test_sheet_gets_more_than_telegram(profile, job, events, tracker, notifier, 
     assert _titles(tracker.appended) == ["Senior QA Engineer 1", "Senior QA Engineer 2"]
     assert _titles(notifier.sent) == ["Senior QA Engineer 1"]
     assert (funnel.written, funnel.sheet_only, funnel.sent) == (2, 1, 1)
+
+
+NOW = datetime(2026, 11, 23, 12, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("published", "max_age", "skipped"),
+    [
+        (NOW - timedelta(days=31), 30, True),
+        (NOW - timedelta(days=29), 30, False),
+        (None, 30, False),  # no date from the source: kept
+        (NOW - timedelta(days=90), None, False),  # no limit set
+    ],
+    ids=["older", "newer", "no-date", "no-limit"],
+)
+def test_old_vacancies_are_skipped_and_counted(profile, job, max_age, published, skipped):
+    limited = profile.model_copy(update={"max_age_days": max_age})
+    funnel = pipeline.Funnel()
+    v = job(1, "Python", published_at=published, collected_at=NOW)
+
+    selected = pipeline.select_new([v], limited, KnownVacancies(), funnel)
+
+    assert (selected == []) is skipped
+    assert (funnel.rejected_by == {"published over 30 days ago": 1}) is skipped
 
 
 def test_collect_all_merges_all_boards(monkeypatch, job):

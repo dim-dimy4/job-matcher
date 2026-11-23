@@ -68,6 +68,7 @@ class Profile(BaseModel):
     minus_keywords: list[str] = Field(default_factory=list)  # anywhere in the post
     title_minus_keywords: list[str] = Field(default_factory=list)  # in the title only
     max_years_required: int | None = Field(default=None, ge=0)  # asking more: rejected
+    max_age_days: int | None = Field(default=None, ge=1)  # published longer ago: skipped
     salary: SalaryRules = Field(default_factory=SalaryRules)
     # Two thresholds: everything from sheet_threshold goes to the sheet, only what reaches
     # notify_threshold goes to Telegram. More to look through, without more messages.
