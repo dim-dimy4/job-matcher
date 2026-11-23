@@ -34,7 +34,8 @@ MAX_STACK_POINTS = 20
 DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
 FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
-FOCUS_POINTS = -25
+# Outweighs "Manual" in the title (+30): a manual mobile-app role is still a mobile role.
+FOCUS_POINTS = -40
 # Places, not words: "performance testing with k6, Gatling or JMeter" in a nice-to-have list
 # is one place, and was four "mentions" for a fit. The unwanted areas come back in 3+ places.
 FOCUS_PLACES = 3
@@ -175,8 +176,9 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     if framework >= FRAMEWORK_MENTIONS:
         rules.append((FRAMEWORK_POINTS, f"framework building: {framework} mentions"))
     for area, words in profile.focus_areas.items():
-        places = _places(words, text)
-        if places >= FOCUS_PLACES:
+        if in_title := _found(words, v.title):
+            rules.append((FOCUS_POINTS, f"focus on {area}: {in_title[0]} in the title"))
+        elif (places := _places(words, text)) >= FOCUS_PLACES:
             rules.append((FOCUS_POINTS, f"focus on {area}: {places} places"))
     in_title = _found(profile.title_penalty_keywords, v.title)
     in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]

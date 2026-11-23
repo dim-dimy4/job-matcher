@@ -171,7 +171,6 @@ title_penalty_keywords:
   - JavaScript
   - TypeScript
   - TS/JS
-  - Mobile
 
 # Another main language mentioned in the description: -15 (once, with the title list).
 # JavaScript/TypeScript are not here: hybrid web roles mention them as a nice-to-have.
@@ -182,7 +181,8 @@ foreign_languages:
   - Kotlin
   - Swift
 
-# Not wanted as the main job: 4+ mentions of an area: -25 each.
+# Not wanted as the main job: named in the title, or in 3+ sentences or list items: -40
+# each, which outweighs "Manual" in the title.
 focus_areas:
   mobile:
     - mobile

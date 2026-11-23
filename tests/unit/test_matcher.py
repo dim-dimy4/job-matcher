@@ -147,13 +147,11 @@ def test_an_automation_title_needs_hands_on_work(profile, vacancy, description, 
     [
         ("Build a test framework from scratch", -20, "-20 framework building: 2 mentions"),
         ("Maintain the test framework", 0, None),
-        ("Test mobile apps. Release iOS builds. Triage Android crashes.", -25,
-         "-25 focus on mobile: 3 places"),
         ("Nice to have: mobile, iOS, Android, mobile-first apps.", 0, None),  # one place
         ("Java or C# experience", -15, "-15 another stack: Java, C#"),
         ("JavaScript is a plus", 0, None),
     ],
-    ids=["framework", "one-framework-mention", "focus-area", "one-list-is-not-focus",
+    ids=["framework", "one-framework-mention", "one-list-is-not-focus",
          "foreign-language", "javascript-is-not-java"],
 )  # fmt: skip
 def test_what_the_job_is_about(profile, vacancy, description, points, reason):
@@ -169,9 +167,8 @@ def test_what_the_job_is_about(profile, vacancy, description, points, reason):
     [
         ("General QA Engineer (Java)", "", "-15 another stack: Java"),
         ("General QA Engineer (Java)", "Java and C# services", "-15 another stack: Java, C#"),
-        ("Senior Mobile QA Engineer", "", "-15 another stack: Mobile"),
     ],
-    ids=["language-in-title", "title-and-text-count-once", "area-in-title"],
+    ids=["language-in-title", "title-and-text-count-once"],
 )
 def test_another_stack_in_the_title_is_a_penalty_not_a_filter(profile, vacancy, title,
                                                               description, reason):  # fmt: skip
@@ -214,6 +211,27 @@ def test_no_grade_in_the_title_takes_it_from_the_years_asked(profile, vacancy, d
     assert match.score == 10 + points
     if reason:
         assert reason in match.reasons
+
+
+def test_an_area_in_three_places_is_its_focus(profile, vacancy):
+    text = "Python, Pytest, Playwright, API. Test mobile apps. Release iOS builds. Triage Android."
+
+    match = score(vacancy(description=text), profile)
+
+    assert match.score == 10  # 30 + 20 stack - 40
+    assert "-40 focus on mobile: 3 places" in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [("Senior Mobile QA Engineer", 0), ("Manual QA Engineer (iOS)", 20)],
+    ids=["area-in-title", "outweighs-manual-in-the-title"],
+)
+def test_an_unwanted_area_in_the_title_is_its_focus(profile, vacancy, title, expected):
+    match = score(vacancy(title=title), profile)
+
+    assert match.score == expected  # 30 base (+30 Manual) - 40
+    assert any(r.startswith("-40 focus on mobile:") for r in match.reasons)
 
 
 def test_score_does_not_go_below_zero(profile, vacancy):
