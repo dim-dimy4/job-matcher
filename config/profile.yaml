@@ -172,7 +172,9 @@ title_penalty_keywords:
   - TypeScript
   - TS/JS
 
-# Another main language mentioned in the description: -15 (once, with the title list).
+# Another main language in the post, counted once with the title list: -30 when it is what
+# the automation is written in; -15 on a hands-on role where it is named in 1-2 places;
+# nothing where Python is offered next to it ("Java or TypeScript, Python is also fine").
 # JavaScript/TypeScript are not here: hybrid web roles mention them as a nice-to-have.
 foreign_languages:
   - Java

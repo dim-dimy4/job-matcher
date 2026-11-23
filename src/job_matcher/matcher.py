@@ -33,7 +33,11 @@ STACK_POINTS = 5
 MAX_STACK_POINTS = 20
 DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
-FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
+# Another language, counted once whether the title or the description names it: -30 when it
+# is what the automation is written in, -15 on a hands-on role where it is a nice-to-have,
+# nothing when the post offers Python instead ("Java or TypeScript, Python is also fine").
+FOREIGN_STACK_POINTS = -30
+FOREIGN_STACK_MANUAL_ROLE_POINTS = -15
 # Outweighs "Manual" in the title (+30): a manual mobile-app role is still a mobile role.
 FOCUS_POINTS = -40
 # Places, not words: "performance testing with k6, Gatling or JMeter" in a nice-to-have list
@@ -180,11 +184,31 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
             rules.append((FOCUS_POINTS, f"focus on {area}: {in_title[0]} in the title"))
         elif (places := _places(words, text)) >= FOCUS_PLACES:
             rules.append((FOCUS_POINTS, f"focus on {area}: {places} places"))
-    in_title = _found(profile.title_penalty_keywords, v.title)
-    in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]
-    if foreign := in_title + in_text:
-        rules.append((FOREIGN_STACK_POINTS, f"another stack: {', '.join(foreign)}"))
+    rules += _foreign_stack(v, text, profile, hybrid)
     return rules
+
+
+def _foreign_stack(
+    v: Vacancy, text: str, profile: Profile, hands_on_role: bool
+) -> list[tuple[int, str]]:
+    in_title = _found(profile.title_penalty_keywords, v.title)
+    places = _PLACE_BREAK.split(v.description)
+    # In the text, a language counts only where Python isn't offered next to it.
+    required = [
+        w
+        for w in _found(profile.foreign_languages, v.description)
+        if w not in in_title
+        and any(_keyword(w).search(p) and not _keyword("Python").search(p) for p in places)
+    ]
+    foreign = in_title + required
+    if not foreign:
+        offered = _found(profile.foreign_languages, text)
+        return [(0, f"another stack, Python offered too: {', '.join(offered)}")] if offered else []
+    # Named in 3+ places, the language is what the job is written in even on a hands-on
+    # role ("Proficiency in Java", "Java-based frameworks"…); in one or two, a nice-to-have.
+    if hands_on_role and _places(foreign, v.description) < FOCUS_PLACES:
+        return [(FOREIGN_STACK_MANUAL_ROLE_POINTS, f"another stack: {', '.join(foreign)}")]
+    return [(FOREIGN_STACK_POINTS, f"automation in another stack: {', '.join(foreign)}")]
 
 
 def score(v: Vacancy, profile: Profile) -> Match:
