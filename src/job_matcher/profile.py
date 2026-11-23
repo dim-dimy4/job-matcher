@@ -58,8 +58,10 @@ class Profile(BaseModel):
     domain_keywords: list[str] = Field(default_factory=list)  # products they like
     manual_keywords: list[str] = Field(default_factory=list)  # hands-on product testing
     automation_title_keywords: list[str] = Field(default_factory=list)
+    manual_title_keywords: list[str] = Field(default_factory=list)  # a hybrid role by title
     framework_keywords: list[str] = Field(default_factory=list)  # building test frameworks
     foreign_languages: list[str] = Field(default_factory=list)  # in the description
+    title_penalty_keywords: list[str] = Field(default_factory=list)  # in the title
     # Areas the candidate doesn't want as the main job: name -> keywords. A post that keeps
     # coming back to one of them (several mentions) is about that area.
     focus_areas: dict[str, list[str]] = Field(default_factory=dict)
@@ -67,7 +69,23 @@ class Profile(BaseModel):
     title_minus_keywords: list[str] = Field(default_factory=list)  # in the title only
     max_years_required: int | None = Field(default=None, ge=0)  # asking more: rejected
     salary: SalaryRules = Field(default_factory=SalaryRules)
+    # Two thresholds: everything from sheet_threshold goes to the sheet, only what reaches
+    # notify_threshold goes to Telegram. More to look through, without more messages.
+    sheet_threshold: int = Field(default=70, ge=0, le=100)  # default: notify_threshold
     notify_threshold: int = Field(default=70, ge=0, le=100)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sheet_defaults_to_notify(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "sheet_threshold" not in data and "notify_threshold" in data:
+            return {**data, "sheet_threshold": data["notify_threshold"]}
+        return data
+
+    @model_validator(mode="after")
+    def _check_thresholds(self) -> Profile:
+        if self.sheet_threshold > self.notify_threshold:
+            raise ValueError("sheet_threshold must not be above notify_threshold")
+        return self
 
 
 def load_profile(path: Path = DEFAULT_PROFILE_PATH, env: Mapping[str, str] = os.environ) -> Profile:

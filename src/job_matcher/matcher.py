@@ -21,6 +21,7 @@ from job_matcher.normalize import required_years
 from job_matcher.profile import Profile
 
 SENIORITY_POINTS = 20  # middle and senior alike
+MIDDLE_YEARS = 2  # no grade in the title: asking this many years makes it a middle role
 LEAD_POINTS = -15  # no lead role was a fit: they mean managing people, not testing
 MANUAL_POINTS = 30  # hands-on testing is a large part of the job
 SOME_MANUAL_POINTS = 15
@@ -32,13 +33,36 @@ STACK_POINTS = 5
 MAX_STACK_POINTS = 20
 DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
-FOREIGN_LANGUAGE_POINTS = -15
+FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
 FOCUS_POINTS = -25
 FOCUS_MENTIONS = 4
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
+
+REJECTED = "rejected: "
+# The start of each hard-filter reason -> its name in the funnel statistics.
+_RULES = {
+    "minus keywords": "minus keywords",
+    "title says": "another stack or area in the title",
+    "requires Polish": "Polish above B1",
+    "junior": "junior",
+    "not a QA role": "not a QA role",
+    "location": "on-site outside the profile cities",
+    "remote from": "remote from Ukraine only",
+    "asks for": "too many years of experience",
+    "salary": "salary below the minimum",
+}
+
+
+def rejection_rule(reason: str) -> str | None:
+    """'rejected: title says Java' -> 'another stack or area in the title'; None if the
+    reason is not a rejection."""
+    if not reason.startswith(REJECTED):
+        return None
+    text = reason.removeprefix(REJECTED)
+    return next((name for start, name in _RULES.items() if text.startswith(start)), text)
 
 
 @dataclass(frozen=True)
@@ -71,25 +95,25 @@ def _local_only(v: Vacancy, profile: Profile) -> bool:
 def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
     reasons = []
     if minus := _found(profile.minus_keywords, f"{v.company} {text}"):
-        reasons.append(f"rejected: minus keywords {', '.join(minus)}")
+        reasons.append(f"{REJECTED}minus keywords {', '.join(minus)}")
     if foreign := _found(profile.title_minus_keywords, v.title):
-        reasons.append(f"rejected: title says {', '.join(foreign)}")
+        reasons.append(f"{REJECTED}title says {', '.join(foreign)}")
     if v.requires_polish:
-        reasons.append("rejected: requires Polish above B1")
+        reasons.append(REJECTED + "requires Polish above B1")
     if v.seniority is Seniority.JUNIOR or _JUNIOR_TITLE.search(v.title):
-        reasons.append("rejected: junior")
+        reasons.append(REJECTED + "junior")
     if not _found(profile.role_keywords, v.title):
-        reasons.append("rejected: not a QA role")
+        reasons.append(REJECTED + "not a QA role")
     if v.remote is not RemoteType.YES and not _found(profile.cities, v.location or ""):
-        reasons.append(f"rejected: location {v.location or 'unknown'} is not remote or Wrocław")
+        reasons.append(f"{REJECTED}location {v.location or 'unknown'} is not remote or Wrocław")
     elif v.remote is RemoteType.YES and _local_only(v, profile):
-        reasons.append(f"rejected: remote from {v.location} only")
+        reasons.append(f"{REJECTED}remote from {v.location} only")
     years = required_years(text)
     if profile.max_years_required is not None and (years or 0) > profile.max_years_required:
-        reasons.append(f"rejected: asks for {years}+ years of experience")
+        reasons.append(f"{REJECTED}asks for {years}+ years of experience")
     base = _salary_in_base(v, profile)
     if base is not None and base < profile.salary.minimum:
-        reasons.append(f"rejected: {_salary_label(v, base, profile)} is below the minimum")
+        reasons.append(f"{REJECTED}{_salary_label(v, base, profile)} is below the minimum")
     return reasons
 
 
@@ -124,13 +148,17 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     rules = []
     # Different phrases, not repeats: a post repeating "test cases" is not more hands-on.
     manual = _found(profile.manual_keywords, text)
-    if len(manual) >= MANUAL_PHRASES:
+    # A title saying "Manual" or "General QA" is a hybrid role whatever the text repeats:
+    # "QA Automation Engineer (20% Automation / 80% Manual Testing)".
+    manual_title = _found(profile.manual_title_keywords, v.title)
+    hybrid = bool(manual_title) or len(manual) >= MANUAL_PHRASES
+    if manual_title:
+        rules.append((MANUAL_POINTS, f"hands-on testing: {manual_title[0]} in the title"))
+    elif hybrid:
         rules.append((MANUAL_POINTS, f"hands-on testing: {', '.join(manual)}"))
     elif manual:
         rules.append((SOME_MANUAL_POINTS, f"some hands-on testing: {', '.join(manual)}"))
-    if len(manual) < MANUAL_PHRASES and (
-        automation := _found(profile.automation_title_keywords, v.title)
-    ):
+    if not hybrid and (automation := _found(profile.automation_title_keywords, v.title)):
         rules.append((AUTOMATION_TITLE_POINTS, f"automation role: {automation[0]} in the title"))
     framework = _mentions(profile.framework_keywords, text)
     if framework >= FRAMEWORK_MENTIONS:
@@ -139,8 +167,10 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
         mentions = _mentions(words, text)
         if mentions >= FOCUS_MENTIONS:
             rules.append((FOCUS_POINTS, f"focus on {area}: {mentions} mentions"))
-    if languages := _found(profile.foreign_languages, text):
-        rules.append((FOREIGN_LANGUAGE_POINTS, f"another stack: {', '.join(languages)}"))
+    in_title = _found(profile.title_penalty_keywords, v.title)
+    in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]
+    if foreign := in_title + in_text:
+        rules.append((FOREIGN_STACK_POINTS, f"another stack: {', '.join(foreign)}"))
     return rules
 
 
@@ -156,6 +186,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
         rules.append((SENIORITY_POINTS, f"seniority: {v.seniority}"))
     elif v.seniority is Seniority.LEAD:
         rules.append((LEAD_POINTS, "lead role"))
+    elif (years := required_years(text)) is not None and years >= MIDDLE_YEARS:
+        rules.append((SENIORITY_POINTS, f"seniority: {years}+ years asked"))
     rules += _work_points(v, text, profile)
     if stack:
         points = _capped(STACK_POINTS, stack, MAX_STACK_POINTS)

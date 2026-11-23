@@ -35,13 +35,18 @@ from job_matcher.normalize import (
 logger = logging.getLogger(__name__)
 
 FEED_URL = "https://djinni.co/jobs/rss/"
-# Remote roles needing 5+ years. "QA" is Djinni's manual-testing category.
+# Remote roles needing 2+ years. "QA" is Djinni's manual-testing category. exp_level values
+# are exact buckets (no_exp, 1y, 2y, 3y, 5y) that don't overlap; repeating the parameter
+# gives their union in one request.
 FEED_KEYWORDS = ("QA Automation", "QA")
-FEED_FILTERS = {"employment": "remote", "exp_level": "5y"}
-MAX_JOB_PAGES = 30  # one request per vacancy: cap a run at 30 pages
+FEED_FILTERS = {"employment": "remote", "exp_level": ["2y", "3y", "5y"]}
+MAX_JOB_PAGES = 60  # one request per vacancy: cap a run at 60 pages (2 minutes)
 DELAY_BETWEEN_REQUESTS_SECONDS = 2.0
 
-SENIOR_MONTHS = 60  # Djinni's "5+ years": senior when the title names no grade
+# No grade in the title: the experience asked decides. Middle and senior score alike, so this
+# only keeps the label honest: a 2-year role is not "senior".
+SENIOR_MONTHS = 60
+MIDDLE_MONTHS = 24
 
 _MONTHS_PER_UNIT = {"MONTH": 1, "YEAR": 12}
 _COUNTRIES = {
@@ -100,7 +105,9 @@ def _seniority(title: str, job: dict[str, Any]) -> Seniority | None:
     if from_title := detect_seniority(title):
         return from_title
     months = (job.get("experienceRequirements") or {}).get("monthsOfExperience") or 0
-    return Seniority.SENIOR if months >= SENIOR_MONTHS else None
+    if months >= SENIOR_MONTHS:
+        return Seniority.SENIOR
+    return Seniority.MIDDLE if months >= MIDDLE_MONTHS else None
 
 
 def _salary(job: dict[str, Any]) -> tuple[int | None, int | None, str | None]:
@@ -139,7 +146,7 @@ def parse_job(job: dict[str, Any], item: FeedItem) -> Vacancy:
     )
 
 
-def fetch(client: httpx.Client, url: str, params: dict[str, str] | None = None) -> str:
+def fetch(client: httpx.Client, url: str, params: dict[str, Any] | None = None) -> str:
     response = client.get(url, params=params)
     response.raise_for_status()
     return response.text

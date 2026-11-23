@@ -10,14 +10,17 @@ from pathlib import Path
 import pytest
 
 from job_matcher.calibration import LABELLED_DIR, evaluate, load_labelled, report
+from job_matcher.matcher import apply
 from job_matcher.profile import load_profile
 
 INVENTED_DIR = Path(__file__).parents[1] / "fixtures" / "calibration"
 
-# The real set: every fit but one passes (one fit is a pure automation role with no hands-on
-# testing in the text, which rules can't tell from the rest), and 90% of the no's are kept out.
-MIN_FIT_PASSED = 6  # of 7
-MIN_NO_REJECTED_SHARE = 0.9
+# The real set (verdicts from the sheet's Status: Yes and 50/50 are fit, No is no): every fit
+# reaches the sheet; pure automation, Ukraine-only and lead roles never reach Telegram; and
+# 90% of all no's stay out of Telegram. The no's that do reach it are judgement calls rules
+# can't make (how deep a TypeScript or Java requirement goes).
+MIN_NO_OUT_OF_TELEGRAM_SHARE = 0.9
+NEVER_IN_TELEGRAM = {"pure_automation", "ukraine_only", "people_lead"}
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +51,9 @@ def test_excluded_rows_are_skipped(invented):
 def test_evaluate_counts_fit_passed_and_no_rejected(invented, profile):
     result = evaluate(invented, profile)
 
-    assert result.summary == "fit passed: 1/1, no rejected: 1/1 (100%)"
+    assert result.summary == (
+        "fit in the sheet: 1/1, no kept out of Telegram: 1/1 (100%), out of the sheet: 1/1 (100%)"
+    )
 
 
 def test_report_lists_every_vacancy_best_first(invented, profile):
@@ -72,5 +77,13 @@ def test_rules_separate_fit_from_no_on_the_real_verdicts(profile):  # pragma: no
     labelled = load_labelled()
     result = evaluate(labelled, profile)
 
-    assert result.fit_passed >= MIN_FIT_PASSED, report(labelled, profile)
-    assert result.no_rejected / result.no_total >= MIN_NO_REJECTED_SHARE, report(labelled, profile)
+    assert result.fit_in_sheet == result.fit_total, report(labelled, profile)
+    share = result.no_out_of_telegram / result.no_total
+    assert share >= MIN_NO_OUT_OF_TELEGRAM_SHARE, report(labelled, profile)
+    in_telegram = [
+        (item.vacancy.company, item.category)
+        for item in labelled
+        if item.category in NEVER_IN_TELEGRAM
+        and (apply(item.vacancy, profile).score or 0) >= profile.notify_threshold
+    ]
+    assert in_telegram == [], report(labelled, profile)

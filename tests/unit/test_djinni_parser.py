@@ -121,10 +121,12 @@ def test_salary(value, currency, expected):
     [
         ("Middle QA Engineer", 60, Seniority.MIDDLE),  # the title wins
         ("QA Engineer", 60, Seniority.SENIOR),
-        ("QA Engineer", 36, None),
+        ("QA Engineer", 36, Seniority.MIDDLE),
+        ("QA Engineer", 24, Seniority.MIDDLE),
+        ("QA Engineer", 12, None),
         ("QA Engineer", None, None),
     ],
-    ids=["title-wins", "five-years", "three-years", "not-given"],
+    ids=["title-wins", "five-years", "three-years", "two-years", "one-year", "not-given"],
 )
 def test_seniority(title, months, expected):
     experience = {"monthsOfExperience": months} if months is not None else None
