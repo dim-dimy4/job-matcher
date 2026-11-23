@@ -147,12 +147,13 @@ def test_an_automation_title_needs_hands_on_work(profile, vacancy, description, 
     [
         ("Build a test framework from scratch", -20, "-20 framework building: 2 mentions"),
         ("Maintain the test framework", 0, None),
-        ("mobile apps on iOS and Android, mobile-first", -25, "-25 focus on mobile: 4 mentions"),
-        ("iOS and Android builds, mobile", 0, None),
+        ("Test mobile apps. Release iOS builds. Triage Android crashes.", -25,
+         "-25 focus on mobile: 3 places"),
+        ("Nice to have: mobile, iOS, Android, mobile-first apps.", 0, None),  # one place
         ("Java or C# experience", -15, "-15 another stack: Java, C#"),
         ("JavaScript is a plus", 0, None),
     ],
-    ids=["framework", "one-framework-mention", "focus-area", "three-mentions-is-not-focus",
+    ids=["framework", "one-framework-mention", "focus-area", "one-list-is-not-focus",
          "foreign-language", "javascript-is-not-java"],
 )  # fmt: skip
 def test_what_the_job_is_about(profile, vacancy, description, points, reason):

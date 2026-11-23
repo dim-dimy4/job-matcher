@@ -35,7 +35,9 @@ DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
 FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
 FOCUS_POINTS = -25
-FOCUS_MENTIONS = 4
+# Places, not words: "performance testing with k6, Gatling or JMeter" in a nice-to-have list
+# is one place, and was four "mentions" for a fit. The unwanted areas come back in 3+ places.
+FOCUS_PLACES = 3
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
 
@@ -84,6 +86,15 @@ def _found(words: list[str], text: str) -> list[str]:
 
 def _mentions(words: list[str], text: str) -> int:
     return sum(len(_keyword(w).findall(text)) for w in words)
+
+
+# Sentence and list-item boundaries of a plain-text post.
+_PLACE_BREAK = re.compile(r"(?<=[.!?;:])\s+|\n|•|·")
+
+
+def _places(words: list[str], text: str) -> int:
+    """In how many sentences or list items any of the words appears."""
+    return sum(bool(_found(words, part)) for part in _PLACE_BREAK.split(text))
 
 
 def _local_only(v: Vacancy, profile: Profile) -> bool:
@@ -164,9 +175,9 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     if framework >= FRAMEWORK_MENTIONS:
         rules.append((FRAMEWORK_POINTS, f"framework building: {framework} mentions"))
     for area, words in profile.focus_areas.items():
-        mentions = _mentions(words, text)
-        if mentions >= FOCUS_MENTIONS:
-            rules.append((FOCUS_POINTS, f"focus on {area}: {mentions} mentions"))
+        places = _places(words, text)
+        if places >= FOCUS_PLACES:
+            rules.append((FOCUS_POINTS, f"focus on {area}: {places} places"))
     in_title = _found(profile.title_penalty_keywords, v.title)
     in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]
     if foreign := in_title + in_text:
