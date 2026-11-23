@@ -236,5 +236,7 @@ salary:
     EUR: 4.25
     GBP: 4.9
 
-# Vacancies scoring at least this go to Telegram.
-notify_threshold: 60
+# New vacancies scoring at least sheet_threshold go to the sheet; at least notify_threshold,
+# also to Telegram (the best 10 per run).
+sheet_threshold: 50
+notify_threshold: 65

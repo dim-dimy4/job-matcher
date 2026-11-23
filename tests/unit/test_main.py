@@ -144,7 +144,7 @@ def test_run_continues_after_a_failed_message(profile, job, tracker, notifier, n
     assert funnel.failed == 1
     assert _titles(notifier.sent) == ["Senior QA Engineer 2"]
     assert "Senior QA Engineer 1 @ Acme not sent: Telegram returned HTTP 400" in caplog.text
-    assert "Funnel: written to the sheet 2, sent to Telegram 1, failed 1" in caplog.text
+    assert "sent to Telegram 1, failed 1" in caplog.text
 
 
 def test_run_with_nothing_new_sends_nothing(profile, job, events, notifier, no_sleep):
@@ -181,6 +181,17 @@ def test_run_writes_the_funnel_to_the_job_summary(profile, job, tracker, notifie
     pipeline.run([job(1, "Python")], profile, tracker, notifier)
 
     assert "| **written to the sheet** | **1** |" in summary.read_text(encoding="utf-8")
+
+
+def test_sheet_gets_more_than_telegram(profile, job, events, tracker, notifier, no_sleep):
+    two_thresholds = profile.model_copy(update={"sheet_threshold": 30})
+    vacancies = [job(1, "Python"), job(2)]  # 35 and 30 points
+
+    funnel = pipeline.run(vacancies, two_thresholds, tracker, notifier)
+
+    assert _titles(tracker.appended) == ["Senior QA Engineer 1", "Senior QA Engineer 2"]
+    assert _titles(notifier.sent) == ["Senior QA Engineer 1"]
+    assert (funnel.written, funnel.sheet_only, funnel.sent) == (2, 1, 1)
 
 
 def test_collect_all_merges_all_boards(monkeypatch, job):
@@ -311,10 +322,12 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     assert pipeline.main(["--dry-run"]) == 0
 
     out = capsys.readouterr().out
-    assert " 35  Senior QA Engineer 1 @ Acme  | Poland · remote" in out
-    assert "1 of 2 vacancies reach 35" in out
+    assert (
+        "1 of 2 vacancies reach the sheet threshold 35, 1 of them the Telegram threshold 35" in out
+    )
+    assert " 35 telegram  Senior QA Engineer 1 @ Acme" in out
     assert "Funnel: collected 2 (dou 2)" in out
-    assert "Funnel: below the threshold 1, already known 0" in out
+    assert "Funnel: below the sheet threshold 1, already known 0" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 
 

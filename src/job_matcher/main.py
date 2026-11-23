@@ -65,7 +65,7 @@ def select_new(
     known: KnownVacancies,
     funnel: Funnel | None = None,
 ) -> list[Vacancy]:
-    """Matches at or above the threshold that aren't known yet, best first.
+    """Matches at or above the sheet threshold that aren't known yet, best first.
 
     Selected vacancies are added to `known`, so a posting found on both boards in one run
     is kept once (the higher-scored copy, thanks to the sort).
@@ -78,7 +78,7 @@ def select_new(
     for v in scored:
         if v.score == 0 and any(rejection_rule(r) for r in v.match_reasons):
             funnel.count_rejected(v)
-        elif (v.score or 0) < profile.notify_threshold:
+        elif (v.score or 0) < profile.sheet_threshold:
             funnel.below_threshold += 1
         elif v in known:
             funnel.already_known += 1
@@ -104,8 +104,9 @@ def run(
     # The sheet first: if Telegram fails afterwards, the vacancy is still logged and isn't
     # sent again next run. A missed message is better than the same message every 3 hours.
     tracker.append(new)
-    funnel.written = len(new)
-    for i, v in enumerate(new[:limit]):
+    to_send = [v for v in new if (v.score or 0) >= profile.notify_threshold]
+    funnel.written, funnel.sheet_only = len(new), len(new) - len(to_send)
+    for i, v in enumerate(to_send[:limit]):
         if i:
             time.sleep(delay)
         try:
@@ -127,8 +128,17 @@ def _print_matches(vacancies: Sequence[Vacancy], profile: Profile) -> None:
     # A Windows console defaults to a legacy code page without "ó" or Cyrillic.
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     for v in matches:
-        print(f"{v.score:>3}  {v.title} @ {v.company}  | {location_format(v)}  {salary_range(v)}")
-    print(f"\n{len(matches)} of {len(vacancies)} vacancies reach {profile.notify_threshold}")
+        where = "telegram" if (v.score or 0) >= profile.notify_threshold else "sheet   "
+        print(
+            f"{v.score:>3} {where}  {v.title} @ {v.company}  | {location_format(v)}"
+            f"  {salary_range(v)}"
+        )
+    sent = sum((v.score or 0) >= profile.notify_threshold for v in matches)
+    print(
+        f"\n{len(matches)} of {len(vacancies)} vacancies reach the sheet threshold "
+        f"{profile.sheet_threshold}, {sent} of them the Telegram threshold "
+        f"{profile.notify_threshold}"
+    )
     # The sheet isn't read in a dry run: "already known" stays 0 and nothing is written.
     print("\n".join(["", *(f"Funnel: {line}" for line in funnel.lines()[:3])]))
 

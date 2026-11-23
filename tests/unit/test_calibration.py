@@ -14,10 +14,11 @@ from job_matcher.profile import load_profile
 
 INVENTED_DIR = Path(__file__).parents[1] / "fixtures" / "calibration"
 
-# The real set: every fit but one passes (one fit is a pure automation role with no hands-on
-# testing in the text, which rules can't tell from the rest), and 90% of the no's are kept out.
-MIN_FIT_PASSED = 6  # of 7
-MIN_NO_REJECTED_SHARE = 0.9
+# The real set: every fit but one reaches the sheet (one fit is a pure automation role with no
+# hands-on testing in the text, which rules can't tell from the rest), and 90% of the no's
+# stay out of Telegram.
+MIN_FIT_IN_SHEET = 6  # of 7
+MIN_NO_OUT_OF_TELEGRAM_SHARE = 0.9
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +49,9 @@ def test_excluded_rows_are_skipped(invented):
 def test_evaluate_counts_fit_passed_and_no_rejected(invented, profile):
     result = evaluate(invented, profile)
 
-    assert result.summary == "fit passed: 1/1, no rejected: 1/1 (100%)"
+    assert result.summary == (
+        "fit in the sheet: 1/1, no kept out of Telegram: 1/1 (100%), out of the sheet: 1/1 (100%)"
+    )
 
 
 def test_report_lists_every_vacancy_best_first(invented, profile):
@@ -72,5 +75,6 @@ def test_rules_separate_fit_from_no_on_the_real_verdicts(profile):  # pragma: no
     labelled = load_labelled()
     result = evaluate(labelled, profile)
 
-    assert result.fit_passed >= MIN_FIT_PASSED, report(labelled, profile)
-    assert result.no_rejected / result.no_total >= MIN_NO_REJECTED_SHARE, report(labelled, profile)
+    assert result.fit_in_sheet >= MIN_FIT_IN_SHEET, report(labelled, profile)
+    share = result.no_out_of_telegram / result.no_total
+    assert share >= MIN_NO_OUT_OF_TELEGRAM_SHARE, report(labelled, profile)

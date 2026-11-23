@@ -98,3 +98,12 @@ def test_salary_to_base(amount, currency, expected):
     rules = SalaryRules(currency="PLN", rates={"USD": 3.7})
 
     assert rules.to_base(amount, currency) == expected
+
+
+def test_sheet_threshold_defaults_to_the_telegram_one():
+    assert Profile(role_keywords=["QA"], notify_threshold=55).sheet_threshold == 55
+
+
+def test_sheet_threshold_above_the_telegram_one_is_an_error():
+    with pytest.raises(ValueError, match="sheet_threshold must not be above notify_threshold"):
+        Profile(role_keywords=["QA"], sheet_threshold=70, notify_threshold=60)

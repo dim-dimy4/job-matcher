@@ -46,8 +46,8 @@ def test_log_lines(funnel):
     assert funnel.lines() == [
         "collected 3 (dou 2, djinni 1)",
         "rejected 2 (junior 2, not a QA role 1)",
-        "below the threshold 1, already known 2",
-        "written to the sheet 3, sent to Telegram 2, failed 0",
+        "below the sheet threshold 1, already known 2",
+        "written to the sheet 3 (0 below the Telegram threshold), sent to Telegram 2, failed 0",
     ]
 
 

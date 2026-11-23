@@ -25,6 +25,7 @@ class Funnel:
     below_threshold: int = 0
     already_known: int = 0  # in the sheet already, or a duplicate from another board
     written: int = 0  # new rows in the sheet
+    sheet_only: int = 0  # of them, below the Telegram threshold
     sent: int = 0
     failed: int = 0
 
@@ -41,9 +42,9 @@ class Funnel:
         return [
             f"collected {self.collected.total()} ({_breakdown(self.collected)})",
             f"rejected {self.rejected} ({_breakdown(self.rejected_by)})",
-            f"below the threshold {self.below_threshold}, already known {self.already_known}",
-            f"written to the sheet {self.written}, sent to Telegram {self.sent}, "
-            f"failed {self.failed}",
+            f"below the sheet threshold {self.below_threshold}, already known {self.already_known}",
+            f"written to the sheet {self.written} ({self.sheet_only} below the Telegram "
+            f"threshold), sent to Telegram {self.sent}, failed {self.failed}",
         ]
 
     def markdown(self) -> str:
@@ -56,9 +57,10 @@ class Funnel:
             f"| **collected** | **{self.collected.total()}** |",
             *(f"| rejected: {rule} | {n} |" for rule, n in self.rejected_by.most_common()),
             f"| **rejected** | **{self.rejected}** |",
-            f"| below the threshold | {self.below_threshold} |",
+            f"| below the sheet threshold | {self.below_threshold} |",
             f"| already known | {self.already_known} |",
             f"| **written to the sheet** | **{self.written}** |",
+            f"| of them below the Telegram threshold | {self.sheet_only} |",
             f"| **sent to Telegram** | **{self.sent}** |",
             f"| failed to send | {self.failed} |",
             "",

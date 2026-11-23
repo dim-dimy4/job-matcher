@@ -67,27 +67,44 @@ def load_labelled(directory: Path = LABELLED_DIR) -> list[Labelled]:
 
 @dataclass(frozen=True)
 class Result:
-    fit_passed: int
+    """Two thresholds, two questions: does every fit reach the sheet, and does a no stay
+    out of Telegram (and how many stay out of the sheet too)."""
+
+    fit_in_sheet: int
     fit_total: int
-    no_rejected: int
+    no_out_of_telegram: int
+    no_out_of_sheet: int
     no_total: int
 
     @property
     def summary(self) -> str:
         return (
-            f"fit passed: {self.fit_passed}/{self.fit_total}, "
-            f"no rejected: {self.no_rejected}/{self.no_total} "
-            f"({self.no_rejected / self.no_total:.0%})"
+            f"fit in the sheet: {self.fit_in_sheet}/{self.fit_total}, "
+            f"no kept out of Telegram: {self.no_out_of_telegram}/{self.no_total} "
+            f"({self.no_out_of_telegram / self.no_total:.0%}), "
+            f"out of the sheet: {self.no_out_of_sheet}/{self.no_total} "
+            f"({self.no_out_of_sheet / self.no_total:.0%})"
         )
 
 
 def evaluate(labelled: Sequence[Labelled], profile: Profile) -> Result:
-    def passes(item: Labelled) -> bool:
-        return (apply(item.vacancy, profile).score or 0) >= profile.notify_threshold
+    def scores(verdict: str) -> list[int]:
+        return [apply(i.vacancy, profile).score or 0 for i in labelled if i.verdict == verdict]
 
-    fit = [passes(item) for item in labelled if item.verdict == "fit"]
-    no = [passes(item) for item in labelled if item.verdict == "no"]
-    return Result(sum(fit), len(fit), no.count(False), len(no))
+    fit, no = scores("fit"), scores("no")
+    return Result(
+        fit_in_sheet=sum(s >= profile.sheet_threshold for s in fit),
+        fit_total=len(fit),
+        no_out_of_telegram=sum(s < profile.notify_threshold for s in no),
+        no_out_of_sheet=sum(s < profile.sheet_threshold for s in no),
+        no_total=len(no),
+    )
+
+
+def _destination(score: int, profile: Profile) -> str:
+    if score >= profile.notify_threshold:
+        return "telegram"
+    return "sheet" if score >= profile.sheet_threshold else ""
 
 
 def report(labelled: Sequence[Labelled], profile: Profile) -> str:
@@ -98,14 +115,17 @@ def report(labelled: Sequence[Labelled], profile: Profile) -> str:
     )
     lines = []
     for item, v in scored:
-        mark = "pass" if (v.score or 0) >= profile.notify_threshold else "    "
+        mark = _destination(v.score or 0, profile)
         lines.append(
-            f"{item.verdict:<5} {v.score:>3} {mark}  {v.title[:45]} @ {v.company[:20]}"
+            f"{item.verdict:<5} {v.score:>3} {mark:<8}  {v.title[:45]} @ {v.company[:20]}"
             + (f"  [{item.category}]" if item.category else "")
         )
         lines.append(f"      {'; '.join(v.match_reasons)}")
     lines.append("")
-    lines.append(f"threshold {profile.notify_threshold}: {evaluate(labelled, profile).summary}")
+    lines.append(
+        f"sheet {profile.sheet_threshold}, Telegram {profile.notify_threshold}: "
+        f"{evaluate(labelled, profile).summary}"
+    )
     return "\n".join(lines)
 
 
