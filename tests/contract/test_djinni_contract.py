@@ -30,6 +30,16 @@ def test_feed_has_items(items):
     assert items, "the QA Automation feed is empty: filters or format changed?"
 
 
+def test_experience_buckets_are_a_union(client):
+    """exp_level values are exact buckets; repeated, they must add up, not intersect."""
+    base = {"primary_keyword": "QA Automation", "employment": "remote"}
+    one = djinni.parse_feed(djinni.fetch(client, djinni.FEED_URL, {**base, "exp_level": "5y"}))
+    all_ = djinni.parse_feed(djinni.fetch(client, djinni.FEED_URL, {**base, **djinni.FEED_FILTERS}))
+
+    assert {i.url for i in one} <= {i.url for i in all_}
+    assert len(all_) > len(one), "2y+3y+5y should be wider than 5y alone"
+
+
 def test_job_page_has_a_job_posting(client, items):
     job = djinni.find_job_posting(djinni.fetch(client, items[0].url))
 

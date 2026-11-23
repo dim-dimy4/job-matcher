@@ -59,7 +59,7 @@ def test_requests_are_filtered_paced_and_identified(client, site, no_sleep):
 
     feed_request = route.calls[0].request
     assert feed_request.url.params["employment"] == "remote"
-    assert feed_request.url.params["exp_level"] == "5y"
+    assert feed_request.url.params.get_list("exp_level") == ["2y", "3y", "5y"]
     assert feed_request.headers["User-Agent"] == USER_AGENT
     assert route.call_count == 2 + 6
     assert no_sleep == [1.5] * 7, "a pause before every request but the first"
