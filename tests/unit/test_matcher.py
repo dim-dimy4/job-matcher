@@ -425,3 +425,12 @@ def test_us_working_hours_cost_points(profile, vacancy):
 
     assert match.score == 10
     assert "-20 US working hours: EST" in match.reasons
+
+
+def test_an_area_in_four_places_is_the_job(profile, vacancy):
+    text = "Test mobile apps. Release iOS builds. Triage Android crashes. Mobile CI."
+
+    match = score(vacancy(description=text), profile)
+
+    assert match.score == 0
+    assert match.reasons == ["rejected: the job is about mobile (4 places)"]

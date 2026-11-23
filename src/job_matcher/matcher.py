@@ -43,6 +43,8 @@ FOCUS_POINTS = -40
 # Places, not words: "performance testing with k6, Gatling or JMeter" in a nice-to-have list
 # is one place, and was four "mentions" for a fit. The unwanted areas come back in 3+ places.
 FOCUS_PLACES = 3
+# In this many places the area is the job: a filter. The fits name one in 2 places at most.
+AREA_JOB_PLACES = 4
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
 US_HOURS_POINTS = -20  # a working day set by a US time zone: evenings in Poland
@@ -64,6 +66,7 @@ _RULES = {
     "freelance": "freelance or a short project",
     "a project of": "freelance or a short project",
     "salary": "salary below the minimum",
+    "the job is about": "an unwanted area is the job",
 }
 
 
@@ -116,6 +119,9 @@ def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
     reasons = []
     if minus := _found(profile.minus_keywords, f"{v.company} {text}"):
         reasons.append(f"{REJECTED}minus keywords {', '.join(minus)}")
+    for area, words in profile.focus_areas.items():
+        if (places := _places(words, text)) >= AREA_JOB_PLACES:
+            reasons.append(f"{REJECTED}the job is about {area} ({places} places)")
     if foreign := _found(profile.title_minus_keywords, v.title):
         reasons.append(f"{REJECTED}title says {', '.join(foreign)}")
     if v.requires_polish:

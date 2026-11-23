@@ -19,6 +19,7 @@ from job_matcher.matcher import rejection_rule
          "on-site outside the profile cities"),
         ("rejected: freelance", "freelance or a short project"),
         ("rejected: a project of 6 months", "freelance or a short project"),
+        ("rejected: the job is about mobile (4 places)", "an unwanted area is the job"),
         ("rejected: something new", "something new"),  # an unknown filter keeps its text
         ("+20 seniority: senior", None),
     ],

@@ -30,6 +30,9 @@ title_minus_keywords:
   - Golang
   - Appium
   # another area
+  - Desktop
+  - Unreal Engine
+  - Unity
   - Data
   - Network
   - Networking
@@ -186,7 +189,7 @@ foreign_languages:
   - Swift
 
 # Not wanted as the main job: named in the title, or in 3+ sentences or list items: -40
-# each, which outweighs "Manual" in the title.
+# each, which outweighs "Manual" in the title; in 4+ places the area is the job: score 0.
 focus_areas:
   mobile:
     - mobile
@@ -223,6 +226,16 @@ focus_areas:
     - firmware
     - hardware
     - Linux kernel
+  desktop applications:
+    - desktop application
+    - desktop app
+    - Windows application
+    - macOS application
+  game engines:
+    - Unreal Engine
+    - Unreal
+    - Unity
+    - game engine
 
 # Any of these anywhere in the post: score 0.
 minus_keywords:
