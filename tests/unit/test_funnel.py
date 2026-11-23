@@ -48,6 +48,8 @@ def test_log_lines(funnel):
         "rejected 2 (junior 2, not a QA role 1)",
         "below the sheet threshold 1, already known 2",
         "written to the sheet 3 (0 below the Telegram threshold), sent to Telegram 2, failed 0",
+        "dou: collected 2, rejected 2, below 0, known 0, written 0, sent 0",
+        "djinni: collected 1, rejected 0, below 0, known 0, written 0, sent 0",
     ]
 
 
@@ -81,3 +83,19 @@ def test_no_summary_outside_actions(funnel, tmp_path, monkeypatch):
     write_summary(funnel, env={})
 
     assert list(tmp_path.iterdir()) == []
+
+
+def test_stages_per_source(make_vacancy):
+    f = Funnel()
+    jobicy, dou = make_vacancy(source="jobicy"), make_vacancy(source="dou")
+    f.count_collected([jobicy, dou, dou])
+    f.note("written", jobicy)
+    f.note("sent", jobicy)
+    f.note("below", dou)
+    f.note("known", dou)
+
+    text = f.markdown()
+
+    assert "| Source | Collected | Rejected | Below | Known | Written | Sent |" in text
+    assert "| dou | 2 | 0 | 1 | 1 | 0 | 0 |" in text
+    assert "| jobicy | 1 | 0 | 0 | 0 | 1 | 1 |" in text

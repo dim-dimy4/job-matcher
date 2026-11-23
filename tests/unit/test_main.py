@@ -171,6 +171,10 @@ def test_funnel_sorts_every_vacancy_into_one_stage(profile, job, events, notifie
         1, 1, 1, 1,
     )  # fmt: skip
     assert funnel.rejected_by == {"junior": 1}
+    assert funnel.by_source == {
+        ("dou", "rejected"): 1, ("dou", "below"): 1, ("dou", "known"): 1,
+        ("dou", "written"): 1, ("dou", "sent"): 1,
+    }  # fmt: skip
 
 
 def test_run_writes_the_funnel_to_the_job_summary(profile, job, tracker, notifier, no_sleep,
@@ -334,6 +338,7 @@ def test_main_dry_run_prints_and_touches_no_outputs(wired, monkeypatch, capsys):
     assert " 35 telegram  Senior QA Engineer 1 @ Acme" in out
     assert "Funnel: collected 2 (dou 2)" in out
     assert "Funnel: below the sheet threshold 1, already known 0" in out
+    assert "Funnel: dou: collected 2, rejected 0, below 1, known 0, written 0, sent 0" in out
     assert (tracker.appended, notifier.sent) == ([], [])
 
 
