@@ -161,7 +161,7 @@ def test_what_the_job_is_about(profile, vacancy, description, points, reason):
         assert reason in match.reasons
 
 
-STACK = "Python, Pytest, Playwright, API. "  # +20, so penalties stay visible above 0
+STACK = "Playwright, Pytest, Postman, API. "  # +20 without Python, which must not sit near Java
 
 
 @pytest.mark.parametrize(
@@ -173,8 +173,10 @@ STACK = "Python, Pytest, Playwright, API. "  # +20, so penalties stay visible ab
          "-30 automation in another stack: Java, C#"),  # title and text count once
         ("QA Engineer", "Automation in Java or TypeScript (Python is also fine).", 0,
          "+0 another stack, Python offered too: Java"),
+        ("QA Engineer", "Languages: Python, Java, NodeJS and PHP.", -30,
+         "-30 automation in another stack: Java"),  # a list, not a choice
     ],
-    ids=["required", "in-the-title", "title-and-text-once", "python-offered"],
+    ids=["required", "in-the-title", "title-and-text-once", "python-offered", "python-listed"],
 )  # fmt: skip
 def test_another_stack_on_an_automation_role(profile, vacancy, title, description, points,
                                              reason):  # fmt: skip

@@ -213,17 +213,38 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     return rules
 
 
+PYTHON_NEARBY_CHARS = 60  # a list item can be a long run of text with no punctuation
+
+
+_OR = re.compile(r"\bor\b", re.IGNORECASE)
+_FINE = re.compile(r"\A\s*(?:is\s+)?(?:also\s+)?(?:fine|ok)\b", re.IGNORECASE)
+
+
+def _python_offered(language: str, text: str) -> bool:
+    """Every mention of the language offers Python as the choice, within a few words:
+    "Python or Java", "Java or TypeScript (Python is also fine)" yes; "languages (Python,
+    Java, NodeJS and PHP)" no: a list, not a choice."""
+    for m in _keyword(language).finditer(text):
+        start, end = max(0, m.start() - PYTHON_NEARBY_CHARS), m.end() + PYTHON_NEARBY_CHARS
+        if not any(
+            _OR.search(text[min(m.end(), p.end()) : max(m.start(), p.start())])
+            or _FINE.search(text[p.end() :])
+            for p in _keyword("Python").finditer(text, start, end)
+        ):
+            return False
+    return True
+
+
 def _foreign_stack(
     v: Vacancy, text: str, profile: Profile, hands_on_role: bool
 ) -> list[tuple[int, str]]:
     in_title = _found(profile.title_penalty_keywords, v.title)
-    places = _PLACE_BREAK.split(v.description)
-    # In the text, a language counts only where Python isn't offered next to it.
+    # In the text, a language counts only where Python isn't offered right next to it
+    # ("Python or Java", "Java or TypeScript (Python is also fine)").
     required = [
         w
         for w in _found(profile.foreign_languages, v.description)
-        if w not in in_title
-        and any(_keyword(w).search(p) and not _keyword("Python").search(p) for p in places)
+        if w not in in_title and not _python_offered(w, v.description)
     ]
     foreign = in_title + required
     if not foreign:
