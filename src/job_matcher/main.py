@@ -18,7 +18,7 @@ from typing import Protocol
 import httpx
 from dotenv import load_dotenv
 
-from job_matcher.collectors import arbeitnow, djinni, dou, himalayas, jobicy
+from job_matcher.collectors import arbeitnow, ats, djinni, dou, himalayas, jobicy
 from job_matcher.collectors.http import make_client
 from job_matcher.funnel import Funnel, write_summary
 from job_matcher.matcher import apply, rejection_rule
@@ -62,6 +62,7 @@ def collect_all(client: httpx.Client) -> list[Vacancy]:
         *djinni.collect(client),
         *jobicy.collect(client),
         *arbeitnow.collect(client),
+        *ats.collect(client),
     ]
 
 

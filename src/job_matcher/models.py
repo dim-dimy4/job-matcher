@@ -28,6 +28,11 @@ class Source(StrEnum):
     DJINNI = "djinni"
     JOBICY = "jobicy"
     ARBEITNOW = "arbeitnow"
+    # Company job boards on applicant tracking systems (collectors/ats.py)
+    GREENHOUSE = "greenhouse"
+    LEVER = "lever"
+    ASHBY = "ashby"
+    RECRUITEE = "recruitee"
 
 
 class RemoteType(StrEnum):

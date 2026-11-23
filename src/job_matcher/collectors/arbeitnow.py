@@ -23,6 +23,7 @@ from job_matcher.normalize import (
     detect_language,
     detect_seniority,
     html_to_text,
+    looks_like_qa,
     requires_polish,
 )
 
@@ -30,17 +31,11 @@ logger = logging.getLogger(__name__)
 
 API_URL = "https://www.arbeitnow.com/api/job-board-api"
 
-# Loose on purpose: the matcher decides what is a QA role; this only drops the bulk
-# (marketing, sales, nursing…) before it reaches the funnel.
-_QA_TITLE = re.compile(
-    r"\b(QA|AQA|tester|test(?:ing)? engineer|testing|quality (?:assurance|engineer))\b",
-    re.IGNORECASE,
-)
 _POLAND = re.compile(r"\b(Poland|Polska|Wroc[lł]aw|Warsaw|Warszawa|Krak[oó]w|Gda[nń]sk)\b", re.I)
 
 
 def is_wanted(job: dict[str, Any]) -> bool:
-    if not _QA_TITLE.search(job.get("title") or ""):
+    if not looks_like_qa(job.get("title") or ""):
         return False
     return bool(job.get("remote")) or bool(_POLAND.search(job.get("location") or ""))
 

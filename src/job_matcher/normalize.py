@@ -119,3 +119,16 @@ def required_years(text: str) -> int | None:
         if _EXPERIENCE.search(around) and years <= MAX_PLAUSIBLE_YEARS:
             found.append(years)
     return max(found, default=None)
+
+
+# Loose on purpose: sources without a QA search (a company's whole board, a general feed)
+# drop the bulk with it; the matcher decides what is really a QA role.
+_QA_TITLE = re.compile(
+    r"\b(QA|AQA|SDET|tester|test(?:ing)? engineer|test automation|testing"
+    r"|quality (?:assurance|engineer))\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_qa(title: str) -> bool:
+    return bool(_QA_TITLE.search(title))

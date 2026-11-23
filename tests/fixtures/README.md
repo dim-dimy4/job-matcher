@@ -13,6 +13,7 @@ redistribute job posts: 6 jobs per file, descriptions converted to plain text an
 | `djinni/job_<id>.html` | Djinni job pages | the page of each feed item, reduced to its `JobPosting` JSON-LD block |
 | `jobicy/qa_testing_europe.json` | Jobicy API (saved 2026-11-23) | `https://jobicy.com/api/jobs?geo=europe&industry=qa-testing&count=100`, 7 jobs: yearly, hourly and currency-less salaries, a multi-region location, a junior level |
 | `arbeitnow/page1.json` | Arbeitnow API (saved 2026-11-23) | `https://www.arbeitnow.com/api/job-board-api?page=1`, 6 of its 300 jobs: a remote QA job, two on-site test jobs, three non-QA jobs |
+| `ats/greenhouse.json`, `lever.json`, `ashby.json`, `recruitee.json` | Company boards (saved 2026-11-23): Ocado Technology, SwingDev, Zeely AI, The Codest | each ATS's list endpoint, 3-4 jobs per board: QA and non-QA titles, remote, hybrid and office locations |
 | `calibration/` | invented | the shape of the local calibration dataset (`labels.csv` + one source payload per vacancy), with made-up companies and texts |
 
 The jobs are picked to cover the parser cases the tests rely on (salary formats, HTML

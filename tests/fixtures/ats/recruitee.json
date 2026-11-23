@@ -1,0 +1,136 @@
+{
+ "offers": [
+  {
+   "location": "Remote job",
+   "title": "Senior QA Automation Engineer",
+   "slug": "senior-qa-automation-engineer-4",
+   "careers_url": "https://thecodest.recruitee.com/o/senior-qa-automation-engineer-4",
+   "on_site": false,
+   "country_code": "PL",
+   "published_at": "2026-10-22 07:49:09 UTC",
+   "city": "Warszawa",
+   "description": "<p><strong>🌍 Hello World!</strong></p><p>We are The Codest - International Tech Software Company with tech hubs in Poland delivering global IT solutions and projects.</p><p>Our expertise centers on web development, cloud engineering &amp; DevOps and quality assurance (QA). This mission became clear after many years of software development, as we want to specialize in scaling tech teams for clients and partners.</p><p>This journey continues as does our growth. If you're goal-driven and looking for new opportunities, join our team!</p><p style=\"min-height: 1.7em;\"></p><p>💡<strong>Project Description:</strong></p><p>In this role, you will contribute to a fintech project about providing loans to funds managed by asset managers. Your main responsibility will be to contribute to its automation. The app is hosted on a stand-alone AWS account. Some automation has already been implemented, but there are more plans in the pipeline.&nbsp;</p><p style=\"min-height: 1.7em;\"></p>",
+   "company_name": "Codest Ltd. Company No. 12590542, VAT number: GB363431020",
+   "locations": [
+    {
+     "id": 1032,
+     "name": "Warszawa",
+     "state": "Mazowieckie",
+     "country": "Poland",
+     "city": "Warszawa",
+     "translations": {
+      "en": {
+       "name": "Warszawa",
+       "city": "Warszawa",
+       "postal_code": null,
+       "street": null,
+       "note": null
+      }
+     },
+     "country_code": "PL",
+     "postal_code": null,
+     "state_code": "14",
+     "street": null,
+     "note": null
+    }
+   ],
+   "hybrid": false,
+   "remote": true,
+   "id": 2793446,
+   "country": "Poland",
+   "status": "published",
+   "created_at": "2026-10-22 07:48:07 UTC",
+   "requirements": "<p>📈 <strong>Your Responsibilities</strong>:</p><ul><li><p>Generate automated test scripts to validate product functionality and performance across development stages.</p></li><li><p>Formulate detailed and well-organized test plans and cases.</p></li><li><p>Estimate, prioritize, and coordinate testing tasks effectively.</p></li><li><p>Identify, document, and track bugs meticulously.</p></li><li><p>Execute comprehensive regression testing post-bug resolution.</p></li><li><p>Establish and implement testing procedures to align with client requirements.</p></li><li><p>Monitor quality assurance metrics such as defect densities and open defect counts.</p><p style=\"min-height: 1.7em;\"></p></li></ul><p><strong>🔑 Key Requirements:</strong></p><ul><li><p>Advanced English in speaking and writing (you will be working with in an international team)</p></li><li><p>4+ years of Quality Assurance / Test Automation experience.</p></li><li><p>Proficiency in a programming language, preferably Python.</p></li><li><p>Experience in performance testing, integration testing, and test automation, and preferably with Selenium and PyTest.</p></li><li><p>Background in software integration and system testing within cloud environments (AWS).</p></li><li><p>Experience with CI/CD, including integration with Build pipelines.</p></li></ul><p style=\"min-height: 1.7em;\"></p><p><strong>➕ Nice to have:&nbsp;</strong></p><ul><li><p>Familiarity with Atlassian tools (Confluence and Jira).</p></li><li><p>Knowledge of ",
+   "department": "Development",
+   "careers_apply_url": "https://thecodest.recruitee.com/o/senior-qa-automation-engineer-4/c/new"
+  },
+  {
+   "location": "Remote job",
+   "title": "Senior Data Scientist",
+   "slug": "senior-data-scientist-3",
+   "careers_url": "https://thecodest.recruitee.com/o/senior-data-scientist-3",
+   "on_site": false,
+   "country_code": "PL",
+   "published_at": "2026-11-19 12:12:30 UTC",
+   "city": "Warszawa",
+   "description": "<p><strong>🌍 Hello World!</strong></p><p>We are The Codest - International Tech Software Company with tech hubs in Poland delivering global IT solutions and projects. Our core values lie in “Customers and People First” approach that prioritises the needs of our customers and a collaborative environment for our employees, enabling us to deliver exceptional products and services.</p><p style=\"min-height: 1.7em;\"></p><p>Our expertise centers on web development, cloud engineering, DevOps and quality. After many years of developing our own product - Yieldbird, which was honored as a laureate of the prestigious Top25 Deloitte awards, we arrived at our mission: to help tech companies build impactful product and scale their IT teams through boosting IT delivery performance. Through our extensive experience with product development challenges, we have become experts in building digital products and scaling IT teams.</p><p style=\"min-height: 1.7em;\"></p><p>But our journey does not end here - we want to continue our growth. If you’re goal-driven and looking for new opportunities, join our team! What awaits you is an enriching and collaborative environment that fosters your growth at every step.</p><p style=\"min-height: 1.7em;\"></p><p>Our client is one of the largest e-commerce platforms in Europe, used by millions of users every day. The company connects sellers - from small businesses to global brands - with customers, offering a vast product selection, fast delivery, and a well-crafte",
+   "company_name": "Codest Ltd. Company No. 12590542, VAT number: GB363431020",
+   "locations": [
+    {
+     "id": 1041,
+     "name": "Warszawa",
+     "state": "Mazowieckie",
+     "country": "Poland",
+     "city": "Warszawa",
+     "translations": {
+      "en": {
+       "name": "Warszawa",
+       "city": "Warszawa",
+       "postal_code": null,
+       "street": "Konstruktorska 11",
+       "note": null
+      }
+     },
+     "country_code": "PL",
+     "postal_code": null,
+     "state_code": "14",
+     "street": "Konstruktorska 11",
+     "note": null
+    }
+   ],
+   "hybrid": false,
+   "remote": true,
+   "id": 2833611,
+   "country": "Poland",
+   "status": "published",
+   "created_at": "2026-11-19 12:00:46 UTC",
+   "requirements": "<ul><li><p>Minimum 4–5 years of commercial experience as a Senior Data Scientist or Machine Learning Research Engineer, working on large-scale data projects.</p></li><li><p>Education: University degree in Computer Science, Mathematics, Statistics, Physics, or a related STEM field.</p></li><li><p>R&amp;D Expertise: Proven experience in end-to-end research and development projects, from reviewing state-of-the-art (SOTA) research and formulating hypotheses to designing experiments, conducting offline/online validation, and delivering production-ready solutions.</p></li><li><p>NLP &amp; LLM: Hands-on experience with modern Natural Language Processing (NLP) techniques and Large Language Models (LLMs), including prompt engineering, information extraction, synthetic data generation and cleaning, semantic clustering, and working with Transformer-based models and Sentence Encoders.</p></li><li><p>Deep Learning &amp; Python: Strong proficiency in Python and the ML/DL ecosystem, including PyTorch or TensorFlow, Hugging Face Transformers, Pandas, NumPy, and Scikit-learn. Ability to write clean, testable, production-quality code and work with CI/CD pipelines.</p></li><li><p>Large-Scale Data Processing: Advanced SQL skills, including analytical SQL for large datasets, and experience processing data in cloud environments (experience with Google Cloud Platform, particularly BigQuery, Vertex AI, and Vertex AI Pipelines).</p></li><li><p>English level min. B2+</p><p style=\"min-height: 1.7em;\"><",
+   "department": "Development",
+   "careers_apply_url": "https://thecodest.recruitee.com/o/senior-data-scientist-3/c/new"
+  },
+  {
+   "location": "Remote job",
+   "title": "Senior Data Engineer",
+   "slug": "senior-data-engineer-7",
+   "careers_url": "https://thecodest.recruitee.com/o/senior-data-engineer-7",
+   "on_site": false,
+   "country_code": "PL",
+   "published_at": "2026-10-28 13:25:23 UTC",
+   "city": "Warsaw",
+   "description": "<h2><strong>🌍 Hello World!</strong></h2><p>We are The Codest -&nbsp; International Tech Software Company with Partners tech hubs in Poland delivering global IT solutions and projects. Our core values lie in “Customers and People First” approach that prioritises the needs of our customers and a collaborative environment for our employees, enabling us to deliver exceptional products and services.</p><p>Our expertise centers on web development, cloud engineering, DevOps and quality.&nbsp; After many years of developing our own product - Yieldbird, which was honored as a laureate of the prestigious Top25 Deloitte awards, we arrived at our mission: to help tech companies build impactful product and scale their IT teams through boosting IT delivery performance. Through our extensive experience with product development challenges, we have become experts in building digital products and scaling IT teams.&nbsp;</p><p>But our journey does not end here - we want to continue our growth. If you’re goal-driven and looking for new opportunities, join our team! What awaits you is an enriching and collaborative environment that fosters your growth at every step.</p><p>We are currently looking for:</p><h1><strong>SENIOR DATA ENGINEER</strong></h1><p>Here, you will have an opportunity to contribute to a banking platform for one of Japan’s leading financial groups. The platform includes banking modules, data management features, and customer-facing applications. The Data Flow Team supports the F",
+   "company_name": "Codest Ltd. Company No. 12590542, VAT number: GB363431020",
+   "locations": [
+    {
+     "id": 1035,
+     "name": "Warsaw",
+     "state": "Mazowieckie",
+     "country": "Poland",
+     "city": "Warsaw",
+     "translations": {
+      "en": {
+       "name": "Warsaw",
+       "city": "Warsaw",
+       "postal_code": null,
+       "street": null,
+       "note": null
+      }
+     },
+     "country_code": "PL",
+     "postal_code": null,
+     "state_code": "14",
+     "street": null,
+     "note": null
+    }
+   ],
+   "hybrid": false,
+   "remote": true,
+   "id": 2800660,
+   "country": "Poland",
+   "status": "published",
+   "created_at": "2026-10-28 13:23:18 UTC",
+   "requirements": "<p style=\"min-height: 1.7em;\"></p><p><strong>💡 Key Responsibilities:</strong></p><ul><li><p>Designing and implementing data processing pipelines based on business and technical requirements, including data transformation, validation, and mapping.</p></li><li><p>Building and maintaining integrations between various data sources and destinations, including APIs, SQL databases, S3 buckets, and SFTP servers.</p></li><li><p>Developing and modifying existing ETL workflows and data flows.</p></li><li><p>Processing and synchronizing data across different systems and formats.</p></li><li><p>Conducting comprehensive testing and validation to ensure data accuracy, integrity, and reliable delivery.</p></li><li><p>Providing post-deployment support and troubleshooting data integration issues.</p></li><li><p>Collaborating with business stakeholders to gather requirements and support production processes when needed.</p></li></ul><p><strong>✅ Requirements (skills &amp; experience):</strong></p><ul><li><p>Advanced English skills, both spoken and written, for collaboration within an international team.</p></li><li><p>5+ years of hands-on experience with ETL tools and data engineering processes in a professional environment.</p></li><li><p>Strong SQL skills and experience working with databases and data integration workflows.</p></li><li><p>Commercial experience with Python for data processing and scripting.</p></li><li><p>Experience designing, developing, and maintaining data pipelines across ",
+   "department": "Development",
+   "careers_apply_url": "https://thecodest.recruitee.com/o/senior-data-engineer-7/c/new"
+  }
+ ]
+}

@@ -200,6 +200,7 @@ def test_collect_all_merges_all_boards(monkeypatch, job):
     monkeypatch.setattr(pipeline.djinni, "collect", lambda client: [job(3)])
     monkeypatch.setattr(pipeline.jobicy, "collect", lambda client: [job(4)])
     monkeypatch.setattr(pipeline.arbeitnow, "collect", lambda client: [job(5)])
+    monkeypatch.setattr(pipeline.ats, "collect", lambda client: [job(6)])
 
     assert _titles(pipeline.collect_all(client=None)) == [
         "Senior QA Engineer 1",
@@ -207,6 +208,7 @@ def test_collect_all_merges_all_boards(monkeypatch, job):
         "Senior QA Engineer 3",
         "Senior QA Engineer 4",
         "Senior QA Engineer 5",
+        "Senior QA Engineer 6",
     ]
 
 
