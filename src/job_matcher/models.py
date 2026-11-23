@@ -27,6 +27,7 @@ class Source(StrEnum):
     DOU = "dou"
     DJINNI = "djinni"
     JOBICY = "jobicy"
+    ARBEITNOW = "arbeitnow"
 
 
 class RemoteType(StrEnum):
