@@ -239,11 +239,14 @@ def test_score_does_not_go_below_zero(profile, vacancy):
         ("за кордоном", 10, "+10 remote: за кордоном"),
         ("Київ, Вроцлав", 0, "remote, check location: Київ, Вроцлав"),
         ("Kyiv, Wrocław", 10, "+10 remote: Kyiv, Wrocław"),
-        ("Ukraine", 0, "remote, check location: Ukraine"),
+        ("Spain", -20, "-20 remote for Spain only"),
+        ("Canada, USA", -20, "-20 remote for Canada, USA only"),
+        ("Київ, Лос-Анжелес (США)", 0, "remote, check location: Київ, Лос-Анжелес (США)"),
+        ("Remote", 0, "remote, check location: Remote"),
         (None, 0, "remote, check location: not given"),
     ],
-    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "country",
-         "no-location"],
+    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "other-country",
+         "other-countries", "dou-office-list", "just-remote", "no-location"],
 )  # fmt: skip
 def test_remote_needs_a_location_the_candidate_can_work_from(profile, vacancy, location, points,
                                                              reason):  # fmt: skip

@@ -48,6 +48,8 @@ AREA_JOB_PLACES = 4
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
 US_HOURS_POINTS = -20  # a working day set by a US time zone: evenings in Poland
+# Remote for named countries without Poland ("Spain", "Cyprus"): usually means living there.
+REMOTE_ELSEWHERE_POINTS = -20
 SHORT_ENGAGEMENT_MONTHS = 6  # a project this short or shorter is not a job change
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
@@ -113,6 +115,15 @@ def _local_only(v: Vacancy, profile: Profile) -> bool:
     """DOU lists the offices of a remote job: "Київ, Львів" means remote from Ukraine."""
     places = [p.strip() for p in (v.location or "").split(",") if p.strip()]
     return bool(places) and all(_found(profile.local_only_places, p) for p in places)
+
+
+def _names_other_countries(location: str, profile: Profile) -> bool:
+    """A remote job limited to named places, none of them the candidate's. Not when the
+    location is empty or just "Remote", nor a DOU list of Ukrainian offices (often with a
+    city abroad added), which says where the company sits, not who may apply."""
+    if not location.strip() or location.strip().casefold() == "remote":
+        return False
+    return not _found(profile.local_only_places, location)
 
 
 def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
@@ -258,6 +269,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
         rules.append((LOCATION_POINTS, f"location: {location}"))
     elif _found(profile.remote_locations + profile.cities, location):
         rules.append((LOCATION_POINTS, f"remote: {location}"))
+    elif _names_other_countries(location, profile):
+        rules.append((REMOTE_ELSEWHERE_POINTS, f"remote for {location} only"))
     else:
         reasons.append(f"remote, check location: {location or 'not given'}")
 

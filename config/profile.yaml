@@ -51,6 +51,7 @@ cities:
   - Вроцлав
 
 # A remote post earns +10 only if its location names one of these (or a city above).
+# Naming other countries only ("Spain", "Cyprus"): -20, usually it means living there.
 remote_locations:
   - Poland
   - Польща
@@ -60,6 +61,9 @@ remote_locations:
   - Європа
   - за кордоном
   - Worldwide
+  - EMEA
+  - Anywhere
+  - Global
 
 # A remote post whose locations are all among these is open to people living in Ukraine
 # only: DOU lists the offices ("Київ, Львів"), Djinni names the country ("Ukraine"). A list
