@@ -135,8 +135,8 @@ def test_seniority(title, months, expected):
     assert v.seniority is expected
 
 
-def test_not_telecommute_is_not_marked_remote():
-    assert parse_job(_job(jobLocationType=None), ITEM).remote is None
+def test_every_job_of_the_remote_feed_is_remote():
+    assert parse_job(_job(jobLocationType=None), ITEM).remote is RemoteType.YES
 
 
 def test_title_whitespace_and_company_registration_are_cleaned():
