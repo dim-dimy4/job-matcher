@@ -163,6 +163,19 @@ _US_ZONE = re.compile(r"\b(?:MST|MDT|PST|PDT|EST|EDT|CST|CDT)\b")
 _US_HOURS = re.compile(r"\bUS (?:time ?zones?|business hours|working hours|hours)\b", re.I)
 
 
+# The post itself says the job is remote: "Work type : Remote" (DOU's relocation feed has
+# no remote marker), "fully remote", "100% remote". Not a bare "remote": "remote work
+# opportunity" also turns up in hybrid posts.
+_SAYS_REMOTE = re.compile(
+    r"work (?:type|format|mode)\W{1,3}remote(?![\w-])|\bfull(?:y)?[ -]remote\b|\b100\s?% remote\b",
+    re.IGNORECASE,
+)
+
+
+def says_remote(text: str) -> bool:
+    return bool(_SAYS_REMOTE.search(text))
+
+
 def us_hours(text: str) -> str | None:
     """The phrase tying the working day to US hours, if any."""
     match = _US_ZONE.search(text) or _US_HOURS.search(text)

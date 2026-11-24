@@ -12,6 +12,7 @@ from job_matcher.normalize import (
     looks_like_qa,
     required_years,
     requires_polish,
+    says_remote,
     us_hours,
 )
 
@@ -196,3 +197,19 @@ def test_is_freelance(text, expected):
 )
 def test_us_hours(text, expected):
     assert us_hours(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Work type : Remote. Technical level : Middle.", True),
+        ("We are looking for a fully remote QA engineer", True),
+        ("Full-remote, B2B", True),
+        ("100% remote within the EU", True),
+        ("Hybrid in Warsaw. Remote work opportunity on Fridays.", False),
+        ("Work type: remote-first office in Kraków", False),
+    ],
+    ids=["work-type", "fully-remote", "full-remote", "100-percent", "bare-remote", "remote-first"],
+)
+def test_says_remote(text, expected):
+    assert says_remote(text) is expected

@@ -26,6 +26,7 @@ from job_matcher.normalize import (
     detect_seniority,
     html_to_text,
     requires_polish,
+    says_remote,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,8 +111,9 @@ def parse_item(item: Element) -> Vacancy:
         title=parts.position,
         company=parts.company,
         location=", ".join(parts.locations) or None,
-        # DOU only marks remote roles; absence of the marker doesn't prove on-site.
-        remote=RemoteType.YES if parts.remote else None,
+        # DOU only marks remote roles in the remote feed; the relocation feed has no marker,
+        # so the post's own "Work type: Remote" counts too. No marker doesn't prove on-site.
+        remote=RemoteType.YES if parts.remote or says_remote(description) else None,
         seniority=detect_seniority(parts.position),
         salary_min=parts.salary_min,
         salary_max=parts.salary_max,

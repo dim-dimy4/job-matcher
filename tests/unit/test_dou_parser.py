@@ -159,3 +159,18 @@ def test_entity_expansion_attack_is_rejected():
     )
     with pytest.raises(DefusedXmlException):
         parse_feed(bomb)
+
+
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        ("Work type : Remote. Technical level : Middle.", RemoteType.YES),
+        ("Office in Kraków.", None),
+    ],
+    ids=["post-says-remote", "no-marker"],
+)
+def test_relocation_post_saying_remote_is_remote(description, expected):
+    """The relocation feed has no remote marker in the title; the post's own words count."""
+    (v,) = parse_feed(_rss(_item(title="QA Engineer в Acme, за кордоном", description=description)))
+
+    assert v.remote is expected
