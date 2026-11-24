@@ -6,10 +6,13 @@ from job_matcher.normalize import (
     clean_url,
     detect_language,
     detect_seniority,
+    engagement_months,
     html_to_text,
+    is_freelance,
     looks_like_qa,
     required_years,
     requires_polish,
+    us_hours,
 )
 
 
@@ -152,3 +155,44 @@ def test_required_years(text, expected):
 )
 def test_looks_like_qa(title, expected):
     assert looks_like_qa(title) is expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("This is short-term project opportunity for 3-6 months.", 6),
+        ("Part-time engagement for approximately 2 months, with extension.", 2),
+        ("Planned Work Duration: Preliminary 3 months with potential for extension", 3),
+        ("Контракт на 12 місяців", 12),
+        ("What success looks like (first 3-6 months): a QA model in place", None),
+        ("6 months probation period", None),  # not about the engagement
+        ("", None),
+    ],
+    ids=["range", "approximately", "duration", "uk", "onboarding", "probation", "empty"],
+)
+def test_engagement_months(text, expected):
+    assert engagement_months(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("Freelance QA Engineer", True), ("a full-remote freelance assignment", True),
+     ("Full-time, B2B contract", False)],
+)  # fmt: skip
+def test_is_freelance(text, expected):
+    assert is_freelance(text) is expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("The work day goes from 9 AM to 5 PM MST.", "MST"),
+        ("Being available by 12pm PST (by 10pm in Kyiv)", "PST"),
+        ("Working hours aligned with US time zones, 16:00-00:00 Kyiv time", "US time zones"),
+        ("A daily overlap of ~6 hours with the client's time zone", None),
+        ("Best practices are a must", None),  # "est" in a word, lower case
+    ],
+    ids=["mst", "pst", "us-time-zones", "overlap-is-not-us", "lower-case"],
+)
+def test_us_hours(text, expected):
+    assert us_hours(text) == expected

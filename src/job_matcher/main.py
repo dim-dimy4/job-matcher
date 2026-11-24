@@ -13,6 +13,7 @@ import logging
 import sys
 import time
 from collections.abc import Sequence
+from datetime import timedelta
 from typing import Protocol
 
 import httpx
@@ -66,6 +67,14 @@ def collect_all(client: httpx.Client) -> list[Vacancy]:
     ]
 
 
+def _is_stale(v: Vacancy, profile: Profile) -> bool:
+    """Published more than max_age_days before it was collected. Checked here, not in the
+    matcher: the age depends on the day of the run, the score must not (calibration)."""
+    if profile.max_age_days is None or v.published_at is None:
+        return False
+    return v.collected_at - v.published_at > timedelta(days=profile.max_age_days)
+
+
 def select_new(
     vacancies: Sequence[Vacancy],
     profile: Profile,
@@ -78,9 +87,13 @@ def select_new(
     is kept once (the higher-scored copy, thanks to the sort).
     """
     funnel = funnel if funnel is not None else Funnel()
-    scored = sorted(
-        (apply(v, profile) for v in vacancies), key=lambda v: v.score or 0, reverse=True
-    )
+    fresh = []
+    for v in vacancies:
+        if _is_stale(v, profile):
+            funnel.count_stale(v, profile.max_age_days or 0)
+        else:
+            fresh.append(v)
+    scored = sorted((apply(v, profile) for v in fresh), key=lambda v: v.score or 0, reverse=True)
     new = []
     for v in scored:
         if v.score == 0 and any(rejection_rule(r) for r in v.match_reasons):

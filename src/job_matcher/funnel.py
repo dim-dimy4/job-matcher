@@ -44,6 +44,11 @@ class Funnel:
         )
         self.note("rejected", v)
 
+    def count_stale(self, v: Vacancy, days: int) -> None:
+        self.rejected += 1
+        self.rejected_by[f"published over {days} days ago"] += 1
+        self.note("rejected", v)
+
     def note(self, stage: str, v: Vacancy) -> None:
         """Count one vacancy at a stage of its source (one of SOURCE_STAGES)."""
         self.by_source[(v.source, stage)] += 1

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from functools import cache
 
 from job_matcher.models import RemoteType, Seniority, Vacancy
-from job_matcher.normalize import required_years
+from job_matcher.normalize import engagement_months, is_freelance, required_years, us_hours
 from job_matcher.profile import Profile
 
 SENIORITY_POINTS = 20  # middle and senior alike
@@ -33,11 +33,24 @@ STACK_POINTS = 5
 MAX_STACK_POINTS = 20
 DOMAIN_POINTS = 5
 MAX_DOMAIN_POINTS = 10
-FOREIGN_STACK_POINTS = -15  # once, whether the title or the description names it
-FOCUS_POINTS = -25
-FOCUS_MENTIONS = 4
+# Another language, counted once whether the title or the description names it: -30 when it
+# is what the automation is written in, -15 on a hands-on role where it is a nice-to-have,
+# nothing when the post offers Python instead ("Java or TypeScript, Python is also fine").
+FOREIGN_STACK_POINTS = -30
+FOREIGN_STACK_MANUAL_ROLE_POINTS = -15
+# Outweighs "Manual" in the title (+30): a manual mobile-app role is still a mobile role.
+FOCUS_POINTS = -40
+# Places, not words: "performance testing with k6, Gatling or JMeter" in a nice-to-have list
+# is one place, and was four "mentions" for a fit. The unwanted areas come back in 3+ places.
+FOCUS_PLACES = 3
+# In this many places the area is the job: a filter. The fits name one in 2 places at most.
+AREA_JOB_PLACES = 4
 LOCATION_POINTS = 10
 SALARY_POINTS = 10
+US_HOURS_POINTS = -20  # a working day set by a US time zone: evenings in Poland
+# Remote for named countries without Poland ("Spain", "Cyprus"): usually means living there.
+REMOTE_ELSEWHERE_POINTS = -20
+SHORT_ENGAGEMENT_MONTHS = 6  # a project this short or shorter is not a job change
 
 _JUNIOR_TITLE = re.compile(r"\bjunior\b", re.IGNORECASE)
 
@@ -52,7 +65,10 @@ _RULES = {
     "location": "on-site outside the profile cities",
     "remote from": "remote from Ukraine only",
     "asks for": "too many years of experience",
+    "freelance": "freelance or a short project",
+    "a project of": "freelance or a short project",
     "salary": "salary below the minimum",
+    "the job is about": "an unwanted area is the job",
 }
 
 
@@ -86,16 +102,37 @@ def _mentions(words: list[str], text: str) -> int:
     return sum(len(_keyword(w).findall(text)) for w in words)
 
 
+# Sentence and list-item boundaries of a plain-text post.
+_PLACE_BREAK = re.compile(r"(?<=[.!?;:])\s+|\n|•|·")
+
+
+def _places(words: list[str], text: str) -> int:
+    """In how many sentences or list items any of the words appears."""
+    return sum(bool(_found(words, part)) for part in _PLACE_BREAK.split(text))
+
+
 def _local_only(v: Vacancy, profile: Profile) -> bool:
     """DOU lists the offices of a remote job: "Київ, Львів" means remote from Ukraine."""
     places = [p.strip() for p in (v.location or "").split(",") if p.strip()]
     return bool(places) and all(_found(profile.local_only_places, p) for p in places)
 
 
+def _names_other_countries(location: str, profile: Profile) -> bool:
+    """A remote job limited to named places, none of them the candidate's. Not when the
+    location is empty or just "Remote", nor a DOU list of Ukrainian offices (often with a
+    city abroad added), which says where the company sits, not who may apply."""
+    if not location.strip() or location.strip().casefold() == "remote":
+        return False
+    return not _found(profile.local_only_places, location)
+
+
 def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
     reasons = []
     if minus := _found(profile.minus_keywords, f"{v.company} {text}"):
         reasons.append(f"{REJECTED}minus keywords {', '.join(minus)}")
+    for area, words in profile.focus_areas.items():
+        if (places := _places(words, text)) >= AREA_JOB_PLACES:
+            reasons.append(f"{REJECTED}the job is about {area} ({places} places)")
     if foreign := _found(profile.title_minus_keywords, v.title):
         reasons.append(f"{REJECTED}title says {', '.join(foreign)}")
     if v.requires_polish:
@@ -108,6 +145,10 @@ def _rejections(v: Vacancy, profile: Profile, text: str) -> list[str]:
         reasons.append(f"{REJECTED}location {v.location or 'unknown'} is not remote or Wrocław")
     elif v.remote is RemoteType.YES and _local_only(v, profile):
         reasons.append(f"{REJECTED}remote from {v.location} only")
+    if is_freelance(text):
+        reasons.append(REJECTED + "freelance")
+    if (months := engagement_months(text)) is not None and months <= SHORT_ENGAGEMENT_MONTHS:
+        reasons.append(f"{REJECTED}a project of {months} months")
     years = required_years(text)
     if profile.max_years_required is not None and (years or 0) > profile.max_years_required:
         reasons.append(f"{REJECTED}asks for {years}+ years of experience")
@@ -164,14 +205,56 @@ def _work_points(v: Vacancy, text: str, profile: Profile) -> list[tuple[int, str
     if framework >= FRAMEWORK_MENTIONS:
         rules.append((FRAMEWORK_POINTS, f"framework building: {framework} mentions"))
     for area, words in profile.focus_areas.items():
-        mentions = _mentions(words, text)
-        if mentions >= FOCUS_MENTIONS:
-            rules.append((FOCUS_POINTS, f"focus on {area}: {mentions} mentions"))
-    in_title = _found(profile.title_penalty_keywords, v.title)
-    in_text = [w for w in _found(profile.foreign_languages, text) if w not in in_title]
-    if foreign := in_title + in_text:
-        rules.append((FOREIGN_STACK_POINTS, f"another stack: {', '.join(foreign)}"))
+        if in_title := _found(words, v.title):
+            rules.append((FOCUS_POINTS, f"focus on {area}: {in_title[0]} in the title"))
+        elif (places := _places(words, text)) >= FOCUS_PLACES:
+            rules.append((FOCUS_POINTS, f"focus on {area}: {places} places"))
+    rules += _foreign_stack(v, text, profile, hybrid)
     return rules
+
+
+PYTHON_NEARBY_CHARS = 60  # a list item can be a long run of text with no punctuation
+
+
+_OR = re.compile(r"\bor\b", re.IGNORECASE)
+_FINE = re.compile(r"\A\s*(?:is\s+)?(?:also\s+)?(?:fine|ok)\b", re.IGNORECASE)
+
+
+def _python_offered(language: str, text: str) -> bool:
+    """Every mention of the language offers Python as the choice, within a few words:
+    "Python or Java", "Java or TypeScript (Python is also fine)" yes; "languages (Python,
+    Java, NodeJS and PHP)" no: a list, not a choice."""
+    for m in _keyword(language).finditer(text):
+        start, end = max(0, m.start() - PYTHON_NEARBY_CHARS), m.end() + PYTHON_NEARBY_CHARS
+        if not any(
+            _OR.search(text[min(m.end(), p.end()) : max(m.start(), p.start())])
+            or _FINE.search(text[p.end() :])
+            for p in _keyword("Python").finditer(text, start, end)
+        ):
+            return False
+    return True
+
+
+def _foreign_stack(
+    v: Vacancy, text: str, profile: Profile, hands_on_role: bool
+) -> list[tuple[int, str]]:
+    in_title = _found(profile.title_penalty_keywords, v.title)
+    # In the text, a language counts only where Python isn't offered right next to it
+    # ("Python or Java", "Java or TypeScript (Python is also fine)").
+    required = [
+        w
+        for w in _found(profile.foreign_languages, v.description)
+        if w not in in_title and not _python_offered(w, v.description)
+    ]
+    foreign = in_title + required
+    if not foreign:
+        offered = _found(profile.foreign_languages, text)
+        return [(0, f"another stack, Python offered too: {', '.join(offered)}")] if offered else []
+    # Named in 3+ places, the language is what the job is written in even on a hands-on
+    # role ("Proficiency in Java", "Java-based frameworks"…); in one or two, a nice-to-have.
+    if hands_on_role and _places(foreign, v.description) < FOCUS_PLACES:
+        return [(FOREIGN_STACK_MANUAL_ROLE_POINTS, f"another stack: {', '.join(foreign)}")]
+    return [(FOREIGN_STACK_POINTS, f"automation in another stack: {', '.join(foreign)}")]
 
 
 def score(v: Vacancy, profile: Profile) -> Match:
@@ -189,6 +272,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
     elif (years := required_years(text)) is not None and years >= MIDDLE_YEARS:
         rules.append((SENIORITY_POINTS, f"seniority: {years}+ years asked"))
     rules += _work_points(v, text, profile)
+    if hours := us_hours(text):
+        rules.append((US_HOURS_POINTS, f"US working hours: {hours}"))
     if stack:
         points = _capped(STACK_POINTS, stack, MAX_STACK_POINTS)
         rules.append((points, f"stack: {', '.join(stack)}"))
@@ -205,6 +290,8 @@ def score(v: Vacancy, profile: Profile) -> Match:
         rules.append((LOCATION_POINTS, f"location: {location}"))
     elif _found(profile.remote_locations + profile.cities, location):
         rules.append((LOCATION_POINTS, f"remote: {location}"))
+    elif _names_other_countries(location, profile):
+        rules.append((REMOTE_ELSEWHERE_POINTS, f"remote for {location} only"))
     else:
         reasons.append(f"remote, check location: {location or 'not given'}")
 

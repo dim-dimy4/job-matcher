@@ -147,13 +147,11 @@ def test_an_automation_title_needs_hands_on_work(profile, vacancy, description, 
     [
         ("Build a test framework from scratch", -20, "-20 framework building: 2 mentions"),
         ("Maintain the test framework", 0, None),
-        ("mobile apps on iOS and Android, mobile-first", -25, "-25 focus on mobile: 4 mentions"),
-        ("iOS and Android builds, mobile", 0, None),
-        ("Java or C# experience", -15, "-15 another stack: Java, C#"),
+        ("Nice to have: mobile, iOS, Android, mobile-first apps.", 0, None),  # one place
         ("JavaScript is a plus", 0, None),
     ],
-    ids=["framework", "one-framework-mention", "focus-area", "three-mentions-is-not-focus",
-         "foreign-language", "javascript-is-not-java"],
+    ids=["framework", "one-framework-mention", "one-list-is-not-focus",
+         "javascript-is-not-java"],
 )  # fmt: skip
 def test_what_the_job_is_about(profile, vacancy, description, points, reason):
     match = score(vacancy(description=description), profile)
@@ -163,56 +161,65 @@ def test_what_the_job_is_about(profile, vacancy, description, points, reason):
         assert reason in match.reasons
 
 
-@pytest.mark.parametrize(
-    ("title", "description", "reason"),
-    [
-        ("General QA Engineer (Java)", "", "-15 another stack: Java"),
-        ("General QA Engineer (Java)", "Java and C# services", "-15 another stack: Java, C#"),
-        ("Senior Mobile QA Engineer", "", "-15 another stack: Mobile"),
-    ],
-    ids=["language-in-title", "title-and-text-count-once", "area-in-title"],
-)
-def test_another_stack_in_the_title_is_a_penalty_not_a_filter(profile, vacancy, title,
-                                                              description, reason):  # fmt: skip
-    match = score(vacancy(title=title, description=description), profile)
-
-    assert match.score == 15
-    assert reason in match.reasons
+STACK = "Playwright, Pytest, Postman, API. "  # +20 without Python, which must not sit near Java
 
 
 @pytest.mark.parametrize(
-    ("title", "reason"),
+    ("title", "description", "points", "reason"),
     [
-        ("QA Automation Engineer (20% Automation / 80% Manual Testing)",
-         "+30 hands-on testing: Manual in the title"),
-        ("Middle Manual QA Engineer", "+30 hands-on testing: Manual in the title"),
+        ("QA Engineer", "Java or C# experience.", -30, "-30 automation in another stack: Java, C#"),
+        ("QA Engineer (Java)", "", -30, "-30 automation in another stack: Java"),
+        ("QA Engineer (Java)", "Java and C# services.", -30,
+         "-30 automation in another stack: Java, C#"),  # title and text count once
+        ("QA Engineer", "Automation in Java or TypeScript (Python is also fine).", 0,
+         "+0 another stack, Python offered too: Java"),
+        ("QA Engineer", "Languages: Python, Java, NodeJS and PHP.", -30,
+         "-30 automation in another stack: Java"),  # a list, not a choice
     ],
-    ids=["automation-title-says-manual", "manual-title"],
+    ids=["required", "in-the-title", "title-and-text-once", "python-offered", "python-listed"],
 )  # fmt: skip
-def test_a_manual_title_is_a_hybrid_role(profile, vacancy, title, reason):
-    match = score(vacancy(title=title), profile)
+def test_another_stack_on_an_automation_role(profile, vacancy, title, description, points,
+                                             reason):  # fmt: skip
+    match = score(vacancy(title=title, description=STACK + description), profile)
 
-    assert match.score == 60, "+30 and no automation-title penalty"
+    assert match.score == 50 + points
     assert reason in match.reasons
 
 
 @pytest.mark.parametrize(
     ("description", "points", "reason"),
     [
-        ("2+ years in QA or a technical role", 20, "+20 seniority: 2+ years asked"),
-        ("5+ years of experience", 20, "+20 seniority: 5+ years asked"),
-        ("1+ year of experience", 0, None),
-        ("", 0, None),
+        ("Java is a plus.", -15, "-15 another stack: Java"),
+        ("Java tests. Java tools. Java services.", -30, "-30 automation in another stack: Java"),
     ],
-    ids=["two-years", "five-years", "one-year", "not-given"],
+    ids=["nice-to-have", "named-in-three-places"],
 )
-def test_no_grade_in_the_title_takes_it_from_the_years_asked(profile, vacancy, description,
-                                                             points, reason):  # fmt: skip
-    match = score(vacancy(seniority=None, description=description), profile)
+def test_another_stack_on_a_hands_on_role(profile, vacancy, description, points, reason):
+    match = score(vacancy(title="Manual QA Engineer", description=STACK + description), profile)
 
-    assert match.score == 10 + points
-    if reason:
-        assert reason in match.reasons
+    assert match.score == 80 + points  # 30 + 30 Manual + 20 stack
+    assert reason in match.reasons
+
+
+def test_an_area_in_three_places_is_its_focus(profile, vacancy):
+    text = "Python, Pytest, Playwright, API. Test mobile apps. Release iOS builds. Triage Android."
+
+    match = score(vacancy(description=text), profile)
+
+    assert match.score == 10  # 30 + 20 stack - 40
+    assert "-40 focus on mobile: 3 places" in match.reasons
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [("Senior Mobile QA Engineer", 0), ("Manual QA Engineer (iOS)", 20)],
+    ids=["area-in-title", "outweighs-manual-in-the-title"],
+)
+def test_an_unwanted_area_in_the_title_is_its_focus(profile, vacancy, title, expected):
+    match = score(vacancy(title=title), profile)
+
+    assert match.score == expected  # 30 base (+30 Manual) - 40
+    assert any(r.startswith("-40 focus on mobile:") for r in match.reasons)
 
 
 def test_score_does_not_go_below_zero(profile, vacancy):
@@ -234,11 +241,14 @@ def test_score_does_not_go_below_zero(profile, vacancy):
         ("за кордоном", 10, "+10 remote: за кордоном"),
         ("Київ, Вроцлав", 0, "remote, check location: Київ, Вроцлав"),
         ("Kyiv, Wrocław", 10, "+10 remote: Kyiv, Wrocław"),
-        ("Ukraine", 0, "remote, check location: Ukraine"),
+        ("Spain", -20, "-20 remote for Spain only"),
+        ("Canada, USA", -20, "-20 remote for Canada, USA only"),
+        ("Київ, Лос-Анжелес (США)", 0, "remote, check location: Київ, Лос-Анжелес (США)"),
+        ("Remote", 0, "remote, check location: Remote"),
         (None, 0, "remote, check location: not given"),
     ],
-    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "country",
-         "no-location"],
+    ids=["poland", "not-in-test-profile", "abroad", "city-spelling", "city", "other-country",
+         "other-countries", "dou-office-list", "just-remote", "no-location"],
 )  # fmt: skip
 def test_remote_needs_a_location_the_candidate_can_work_from(profile, vacancy, location, points,
                                                              reason):  # fmt: skip
@@ -321,6 +331,9 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         ({"location": "Київ, Львів"}, "rejected: remote from Київ, Львів only"),
         ({"description": "Python. 7+ years of experience in QA"},
          "rejected: asks for 7+ years of experience"),
+        ({"title": "Freelance QA Engineer"}, "rejected: freelance"),
+        ({"description": "Python. A short-term project for 3-6 months."},
+         "rejected: a project of 6 months"),
         ({"salary_max": 8000, "currency": "PLN"},
          "rejected: salary up to 8000 PLN is below the minimum"),
         ({"salary_min": 2000, "salary_max": 2400, "currency": "USD"},
@@ -341,6 +354,8 @@ def test_profile_city_counts_like_remote(profile, vacancy, remote):
         "location-unknown",
         "remote-from-ukraine-only",
         "too-many-years",
+        "freelance",
+        "short-project",
         "salary-below-minimum",
         "converted-salary-below-minimum",
     ],
@@ -391,3 +406,36 @@ def test_apply_fills_score_reasons_and_skills_on_a_copy(profile, vacancy):
     assert (scored.score, scored.skills) == (35, ["Python"])
     assert scored.match_reasons == score(original, profile).reasons
     assert original.score is None, "the input vacancy must not be modified"
+
+
+@pytest.mark.parametrize(
+    ("location", "rejected"),
+    [("Ukraine", True), ("Ukraine, Poland", False), ("Europe", False)],
+    ids=["country-only", "with-poland", "region"],
+)
+def test_a_remote_job_for_one_local_country_only(profile, vacancy, location, rejected):
+    with_country = profile.model_copy(update={"local_only_places": ["Ukraine", "Київ"]})
+
+    match = score(vacancy(location=location), with_country)
+
+    assert (f"rejected: remote from {location} only" in match.reasons) is rejected
+
+
+def test_a_project_longer_than_six_months_is_a_job(profile, vacancy):
+    assert score(vacancy(description="A contract for 12 months, Python."), profile).score > 0
+
+
+def test_us_working_hours_cost_points(profile, vacancy):
+    match = score(vacancy(description="Work 9 AM to 5 PM EST."), profile)
+
+    assert match.score == 10
+    assert "-20 US working hours: EST" in match.reasons
+
+
+def test_an_area_in_four_places_is_the_job(profile, vacancy):
+    text = "Test mobile apps. Release iOS builds. Triage Android crashes. Mobile CI."
+
+    match = score(vacancy(description=text), profile)
+
+    assert match.score == 0
+    assert match.reasons == ["rejected: the job is about mobile (4 places)"]

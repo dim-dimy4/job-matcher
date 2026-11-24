@@ -132,3 +132,38 @@ _QA_TITLE = re.compile(
 
 def looks_like_qa(title: str) -> bool:
     return bool(_QA_TITLE.search(title))
+
+
+# "short-term project opportunity for 3-6 months", "engagement for approximately 2 months",
+# "Planned Work Duration: 3 months". Only next to a word about the engagement: "in the first
+# 3-6 months you will…" is about onboarding, not about how long the job lasts.
+_ENGAGEMENT_MONTHS = re.compile(
+    r"(?:project|engagement|assignment|contract|duration|short-term|проєкт|проект|контракт)"
+    r"[^.!?\n]{0,60}?(?<!first )(?<!\d)(\d{1,2})(?:\s*[-\N{EN DASH}]\s*(\d{1,2}))?\s*"
+    r"(?:months?|місяц\w*|месяц\w*)",
+    re.IGNORECASE,
+)
+_FREELANCE = re.compile(r"\bfreelanc\w*\b", re.IGNORECASE)
+
+
+def engagement_months(text: str) -> int | None:
+    """How many months the job lasts, if the post says (a range counts by its upper bound)."""
+    if match := _ENGAGEMENT_MONTHS.search(text):
+        return int(match[2] or match[1])
+    return None
+
+
+def is_freelance(text: str) -> bool:
+    return bool(_FREELANCE.search(text))
+
+
+# Working hours set by a US time zone: "9 AM - 5 PM MST", "available by 12pm PST",
+# "Working hours aligned with US time zones". Abbreviations are matched in capitals only.
+_US_ZONE = re.compile(r"\b(?:MST|MDT|PST|PDT|EST|EDT|CST|CDT)\b")
+_US_HOURS = re.compile(r"\bUS (?:time ?zones?|business hours|working hours|hours)\b", re.I)
+
+
+def us_hours(text: str) -> str | None:
+    """The phrase tying the working day to US hours, if any."""
+    match = _US_ZONE.search(text) or _US_HOURS.search(text)
+    return match[0] if match else None
