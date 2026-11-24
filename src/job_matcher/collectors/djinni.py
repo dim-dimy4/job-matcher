@@ -133,7 +133,9 @@ def parse_job(job: dict[str, Any], item: FeedItem) -> Vacancy:
         title=title,
         company=clean_company(job["hiringOrganization"]["name"]),
         location=_location(job.get("applicantLocationRequirements")),
-        remote=RemoteType.YES if job.get("jobLocationType") == "TELECOMMUTE" else None,
+        # The feed asks for employment=remote only, so every job in it is remote, whether
+        # or not the page's JSON-LD also says TELECOMMUTE (some don't).
+        remote=RemoteType.YES,
         seniority=_seniority(title, job),
         salary_min=salary_min,
         salary_max=salary_max,
